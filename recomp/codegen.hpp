@@ -16,6 +16,9 @@ struct CodegenOptions {
     std::string output;
     std::uint32_t unit_bits = 14;
     std::set<std::uint32_t> probes;
+    // Guest addresses where the host gets to run before the instruction does
+    // (ps2::hook), for work that has to happen at a point inside a function.
+    std::set<std::uint32_t> hooks;
 };
 
 struct Translation {

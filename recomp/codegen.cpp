@@ -214,6 +214,7 @@ private:
                 out_ << label(a) << ":\n";
             }
             if (options_.probes.count(a)) line(std::format("probe(c, {});", pc(a)));
+            if (options_.hooks.count(a)) line(std::format("hook(c, {});", pc(a)));
             const Insn i = at(a);
             const Flow fl = flow(i.op);
             if (fl == Flow::None) {

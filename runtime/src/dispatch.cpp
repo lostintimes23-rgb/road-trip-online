@@ -197,6 +197,12 @@ void probe(Cpu &c, std::uint32_t pc) {
                  c.r[7].w[0], c.r[31].w[0], c.r[2].w[0]);
 }
 
+// A guest address the recompiler was told to hook: the host runs first, then the instruction the
+// call sits in front of, so a write here is seen by the code that follows it in the same frame.
+void hook(Cpu &c, std::uint32_t pc) {
+    if (g_options.on_hook) g_options.on_hook(pc, c);
+}
+
 void breakpoint(Cpu &c, std::uint32_t pc) {
     std::fprintf(stderr, "[ee] break at 0x%08X (ra 0x%08X)\n", pc, c.r[31].w[0]);
 }

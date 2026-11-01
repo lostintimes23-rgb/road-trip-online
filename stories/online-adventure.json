@@ -1,0 +1,210 @@
+{
+  "version": 3,
+  "title": "The Open Road Accord",
+  "chapters": [
+    {
+      "id": "ch1",
+      "number": 1,
+      "title": "A President on Paper",
+      "place": "town:1",
+      "place_name": "Peach Town",
+      "contact": "Mina Wrench",
+      "intro": "You arrive as the president of a country with one garage, one road and a storm that took the Road Beacon down. Mina Wrench is waiting by the bay with a mailbag that has to reach the next town before dark.",
+      "cast": [
+        {
+          "npc": "Mina Wrench",
+          "marker": { "first": 28, "last": 38 },
+          "say": [
+            "You made it.\nI'm Mina Wrench.\nI keep the garage by\nthe bay, and I keep\nthe mail moving.",
+            "That storm took the\nRoad Beacon down.\nNo beacon, no night\nruns, so this bag goes\nout now or not at all.",
+            "Take it out of town\nand bring it back.\nKeep the car in one\npiece, then we'll talk\nabout the rest."
+          ]
+        }
+      ],
+      "objectives": [
+        { "id": "meet_mina", "kind": "talk", "npc": "Mina Wrench", "text": "Talk to Mina Wrench by the bay in Peach Town." },
+        { "id": "run_mail", "kind": "drive", "text": "Carry the mailbag out of Peach Town and back.", "goal": 120 },
+        { "id": "report_mina", "kind": "return", "text": "Bring Mina word that the road is open." }
+      ],
+      "reward": { "coins": 100, "text": "100 Coins and the garage's first part order" },
+      "outro": "Mina pins a route sheet to the garage wall. Six towns, six broken signals, and now a president with a car."
+    },
+    {
+      "id": "ch2",
+      "number": 2,
+      "title": "Six Signals",
+      "place": "town:2",
+      "place_name": "Fuji City",
+      "contact": "Rex Rivet",
+      "intro": "Rex Rivet, a retired champion, keeps the race calendar. He will open it to you once the town's signal mast is lit again.",
+      "cast": [
+        {
+          "npc": "Rex Rivet",
+          "marker": { "first": 29, "last": 39 },
+          "say": [
+            "Name's Rex Rivet.\nUsed to win things.\nNow I keep the\nrace calendar.",
+            "The signal mast went\ndark with the storm.\nThe calendar won't\nopen without it.",
+            "Win a race on the\ntown course and I'll\nput your name on\nthe season."
+          ]
+        }
+      ],
+      "objectives": [
+        { "id": "reach_town2", "kind": "visit", "text": "Drive on to Fuji City." },
+        { "id": "win_race", "kind": "race", "text": "Finish a race on the town course for Rex." },
+        { "id": "report_rex", "kind": "talk", "npc": "Rex Rivet", "text": "Tell Rex the signal is lit." }
+      ],
+      "reward": { "coins": 250, "text": "250 Coins and the race calendar" },
+      "outro": "The calendar opens. The season has a schedule now, and a name on it that is not yours."
+    },
+    {
+      "id": "ch3",
+      "number": 3,
+      "title": "The Static Schedule",
+      "place": "town:3",
+      "place_name": "Sandpolis",
+      "contact": "Mayor Marigold",
+      "intro": "Director Static's championship is on every board in Sandpolis, and Sandpolis is not on it. Mayor Marigold wants the town's records in order before she says so out loud.",
+      "cast": [
+        {
+          "npc": "Mayor Marigold",
+          "marker": { "first": 33, "last": 41 },
+          "say": [
+            "Marigold. Mayor.\nI keep this council\nin one room, mostly\nby feeding them.",
+            "Static's calendar is\nout. Every race on it\nis three towns away.\nOurs isn't on it.",
+            "Help me stack the\nrecords. Then we\nargue with numbers\ninstead of noise."
+          ]
+        }
+      ],
+      "objectives": [
+        { "id": "reach_town3", "kind": "visit", "text": "Drive to Sandpolis and find Mayor Marigold." },
+        { "id": "log_records", "kind": "drive", "text": "Run Marigold's race records to the town offices.", "goal": 150 },
+        { "id": "report_marigold", "kind": "talk", "npc": "Mayor Marigold", "text": "Tell Marigold the town's records are filed." }
+      ],
+      "reward": { "coins": 400, "text": "400 Coins and Sandpolis' support" },
+      "outro": "Marigold reads the numbers twice, then sends them to every town Static left off the calendar."
+    },
+    {
+      "id": "ch4",
+      "number": 4,
+      "title": "The Road Assembly",
+      "place": "town:4",
+      "place_name": "Chestnut Canyon",
+      "contact": "Foreman Oak",
+      "intro": "Rex wants a public assembly, and Chestnut Canyon is where the crews gather. Foreman Oak signs nobody's name until the work is done.",
+      "cast": [
+        {
+          "npc": "Foreman Oak",
+          "marker": { "first": 17, "last": 27 },
+          "say": [
+            "Oak. Foreman.\nThis canyon runs on\nparts and on\nstubbornness.",
+            "Assembly's coming.\nEvery crew wants work\nthat counts and a\nlane to do it in.",
+            "Haul what the crews\nneed. I'll put your\nname on the board at\nthe end of it."
+          ]
+        }
+      ],
+      "objectives": [
+        { "id": "reach_town4", "kind": "visit", "text": "Drive to Chestnut Canyon for the assembly." },
+        { "id": "haul_parts", "kind": "drive", "text": "Haul parts and signage between the canyon crews.", "goal": 200 },
+        { "id": "report_oak", "kind": "talk", "npc": "Foreman Oak", "text": "Tell Oak the crews have what they need." }
+      ],
+      "reward": { "coins": 550, "text": "550 Coins and the crews' backing" },
+      "outro": "Oak nails a fresh sheet to the board. Your name is on it, with the towns you helped beside it."
+    },
+    {
+      "id": "ch5",
+      "number": 5,
+      "title": "The Longest Delivery",
+      "place": "town:5",
+      "place_name": "Mushroom Road",
+      "contact": "Nurse Bell",
+      "intro": "A storm warning comes in from the far side of the map. Mushroom Road has one nurse, and the supplies are still sitting in the next town's depot.",
+      "cast": [
+        {
+          "npc": "Nurse Bell",
+          "marker": { "first": 3, "last": 4 },
+          "say": [
+            "Nurse Bell. One of\nme, this side of the\nstorm.",
+            "Batteries, medicine,\nsignal parts. All of\nit still in the next\ntown's depot.",
+            "Run it up here.\nCareful driving, not\nfast driving. I count\nwhat arrives."
+          ]
+        }
+      ],
+      "objectives": [
+        { "id": "reach_town5", "kind": "visit", "text": "Get to Mushroom Road before the storm." },
+        { "id": "haul_supplies", "kind": "drive", "text": "Run medicine and Beacon batteries up to Mushroom Road.", "goal": 250 },
+        { "id": "report_bell", "kind": "talk", "npc": "Nurse Bell", "text": "Let Nurse Bell count what arrived." }
+      ],
+      "reward": { "coins": 700, "text": "700 Coins and Mushroom Road's trust" },
+      "outro": "Bell sorts the crates by lantern light and says the thing you have been waiting to hear: the road held."
+    },
+    {
+      "id": "ch6",
+      "number": 6,
+      "title": "One Road, Many Presidents",
+      "place": "town:6",
+      "place_name": "White Mountain",
+      "contact": "Pip",
+      "intro": "The Beacon is lit and the Accord is written. At White Mountain the towns put one name on the finish board, and it has to be raced for.",
+      "cast": [
+        {
+          "npc": "Pip",
+          "marker": { "first": 27, "last": 36 },
+          "say": [
+            "Pip. Beacon's lit,\nand the Accord wants\none name on the\nfinish board.",
+            "Nobody hands a\npresidency out. You\nrace for it, in front\nof everyone.",
+            "Qualifier's on the\nmountain course.\nGive them something\nto write down."
+          ]
+        }
+      ],
+      "objectives": [
+        { "id": "reach_town6", "kind": "visit", "text": "Drive to White Mountain for the Assembly." },
+        { "id": "meet_pip", "kind": "talk", "npc": "Pip", "text": "Find Pip at the White Mountain start line." },
+        { "id": "qualify", "kind": "race", "text": "Qualify at the White Mountain course." }
+      ],
+      "reward": { "coins": 1000, "text": "1000 Coins and a place in the Road Assembly Championship" },
+      "outro": "The board goes up with every country's name on it. No one owns the road; the next Assembly is already taking entries."
+    }
+  ],
+  "side_quests": [
+    {
+      "id": "eva_enchanted_archery_rally",
+      "title": "The Enchanted Forest Archery Rally",
+      "unlock_chapter": 1,
+      "place": "town:7",
+      "place_name": "Papaya Island",
+      "contact": "Eva Rose Silver",
+      "vehicle_profile": {
+        "year": 1998,
+        "make": "Mazda",
+        "model": "MX-5 Miata (NA)",
+        "body_color": "Pastel Mint with Satin Pearl",
+        "decals": "Soft pink and lavender organic geometry",
+        "custom_parts": ["bow-shaped rear spoiler", "quiver-style roof rack", "white 5-spoke wheels", "lowered suspension", "tuned 1.8L engine"],
+        "special_gear": ["Jet Turbine", "Propeller Kit"]
+      },
+      "advisor": "Eva Rose Silver",
+      "recruit": "Eva Rose Silver",
+      "cast": [
+        {
+          "npc": "Eva Rose Silver",
+          "marker": { "first": 28, "last": 37 },
+          "say": [
+            "Ready for our next\nroad-quest, President?\nMy arrows -- and tires --\npoint to adventure!",
+            "Three nature charms\nare missing: one in\nSandpolis, one on White\nMountain, one along our\nPapaya coast.",
+            "Find their trail, then\nmeet me at Lagoon for\na precision rally. Hit\nthe curves like a\nbullseye!"
+          ]
+        }
+      ],
+      "objectives": [
+        { "id": "meet_eva", "kind": "talk", "npc": "Eva Rose Silver", "place": "town:7", "text": "Meet Eva on Papaya Island and hear about the missing nature charms." },
+        { "id": "desert_charm", "kind": "visit", "place": "town:3", "requires": ["meet_eva"], "text": "Find the Desert Charm trail in Sandpolis." },
+        { "id": "snow_charm", "kind": "visit", "place": "town:6", "requires": ["desert_charm"], "text": "Find the Snow Mountain Charm trail in White Mountain." },
+        { "id": "coast_charm", "kind": "visit", "place": "road:7", "requires": ["snow_charm"], "text": "Follow the coastal road to locate the Papaya Island Charm trail." },
+        { "id": "return_to_eva", "kind": "talk", "npc": "Eva Rose Silver", "place": "town:7", "requires": ["coast_charm"], "text": "Return to Eva at Papaya Island with all three charm trails." },
+        { "id": "lagoon_rally", "kind": "race", "place": "race:5", "requires": ["return_to_eva"], "text": "Finish the Lagoon Raceway precision rally and post your time." }
+      ],
+      "reward": { "coins": 500, "text": "500 Coins; Eva joins your online crew and advises your Road Assembly campaign." },
+      "note": "Current implementation verifies region visits, Eva dialogue and a Lagoon race finish. It does not spawn physical charm pickups, archery targets, or Eva's custom Miata actor yet."
+    }
+  ]
+}

@@ -8,13 +8,16 @@
   :root { color-scheme: dark; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0b0d; color: #d8d8dc; font: 13px system-ui, sans-serif; }
   body { display: flex; flex-direction: column; }
-  #stage { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+  #stage { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; position: relative; }
   canvas { width: 100%; height: 100%; display: block; background: #000; }
   #remote { display: none; width: 100%; height: 100%; background: #000; object-fit: fill; }
-  body.guest #remote { display: block; }
+  /* The overlays are transparent: the page's canvas rule above paints every canvas black. */
+  #pose-radar { display: none; position: fixed; z-index: 2; right: 12px; top: 12px; width: 152px; height: 152px; pointer-events: none; background: none; }
+  body.mmo #pose-radar { display: block; }
+  body.touch #pose-radar { right: 8px; top: calc(8px + env(safe-area-inset-top)); width: 124px; height: 124px; }
+  body.guest:not(.independent) #remote { display: block; }
   body.guest.frames #remote { display: none; }
-  body.guest.frames #canvas { display: block; }
-  body.guest:not(.frames) #canvas, body.guest #bar .host-only, body.guest #menu .host-only { display: none; }
+  body.guest:not(.frames):not(.independent) #canvas, body.guest #bar .host-only, body.guest #menu .host-only { display: none; }
   #bar { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; padding: 6px 12px; background: #141418; border-top: 1px solid #222; }
   #status { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #stats { font-variant-numeric: tabular-nums; color: #9ad; }
@@ -24,9 +27,67 @@
   #menu { position: fixed; right: 8px; z-index: 4; display: flex; flex-direction: column; align-items: stretch; gap: 8px; padding: 10px;
     background: #141418; border: 1px solid #2a2a33; border-radius: 8px; max-height: 70vh; overflow-y: auto; }
   #menu[hidden] { display: none; }
+  #online { position: fixed; z-index: 5; right: 8px; top: 8px; width: 336px; max-height: calc(100% - 24px); overflow-y: auto;
+    display: flex; flex-direction: column; gap: 8px; padding: 12px; background: #141418; border: 1px solid #2a2a33; border-radius: 8px; }
+  #online[hidden], #online [hidden] { display: none; }
+  #online h2 { margin: 0; font-size: 14px; font-weight: 600; }
+  #online .row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; justify-content: space-between; }
+  #online input[type=text], #online input[type=password] { flex: 1; min-width: 0; background: #1d2433; color: #dfe6f3;
+    border: 1px solid #34405a; border-radius: 4px; padding: 6px 8px; font: inherit; }
+  #online .row > button { padding: 5px 10px; }
+  #online-keyboard { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; }
+  #online-keyboard button { min-width: 0; padding: 9px 2px; font-size: 13px; touch-action: manipulation; }
+  #online-keyboard button.wide { grid-column: span 2; }
+  #online-keyboard button.space { grid-column: span 4; }
+  #online-keyboard button.selected { outline: 2px solid #9ad; }
+  #online-name.selected, #online-pass.selected { border-color: #9ad; box-shadow: 0 0 0 1px #9ad; }
+  #online-keyboard-hint { color: #9ad; font-size: 11px; margin: -3px 0 0; }
+  #online p { margin: 0; color: #9ad; line-height: 1.4; }
+  #online ul { margin: 0; padding-left: 16px; color: #cfd8e2; line-height: 1.5; }
+  #online hr { border: 0; border-top: 1px solid #2a2a33; margin: 2px 0; }
+  #online label { color: #9ad; }
+  #online-button.on { background: #2f6b46; }
+  #online-prologue { position: fixed; z-index: 10; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px;
+    background: radial-gradient(ellipse at center, rgba(30,43,62,.96), rgba(4,7,12,.98)); }
+  #online-prologue[hidden] { display: none; }
+  #online-prologue-card { width: min(640px, 100%); padding: 28px; border: 1px solid #52627b; border-radius: 12px;
+    background: rgba(13,18,28,.94); box-shadow: 0 18px 70px #000a; }
+  #online-prologue-kicker { color: #9ad; letter-spacing: .16em; text-transform: uppercase; font-size: 11px; }
+  #online-prologue h2 { margin: 10px 0; font-size: clamp(22px, 4vw, 34px); }
+  #online-prologue-copy { min-height: 84px; color: #d8e0ec; font-size: 16px; line-height: 1.65; }
+  #online-prologue-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 18px; }
+  #online-country-setup { position: fixed; z-index: 11; inset: 0; display: flex; align-items: center; justify-content: center; padding: 20px;
+    background: radial-gradient(ellipse at center, rgba(30,43,62,.96), rgba(4,7,12,.98)); }
+  #online-country-setup[hidden] { display: none; }
+  #online-country-card { width: min(520px, 100%); padding: 26px; border: 1px solid #52627b; border-radius: 12px;
+    background: rgba(13,18,28,.96); box-shadow: 0 18px 70px #000a; }
+  #online-country-card h2 { margin: 8px 0; font-size: 26px; }
+  #online-country-card p { color: #c5d0df; line-height: 1.55; }
+  #online-country-card label { display: block; margin: 14px 0 5px; color: #9ad; }
+  #online-country-card input, #online-country-card select { box-sizing: border-box; width: 100%; background: #1d2433; color: #fff;
+    border: 1px solid #34405a; border-radius: 4px; padding: 9px; font: inherit; }
+  #online-country-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+  #online-country-message { min-height: 20px; color: #ffb4a8; }
+  #online-adventure-hud { position: fixed; z-index: 3; left: 12px; bottom: 12px; width: min(360px, calc(100vw - 24px));
+    box-sizing: border-box; padding: 14px; border: 1px solid #71839b; border-radius: 10px; color: #edf3fb;
+    background: rgba(13,18,28,.94); box-shadow: 0 8px 30px #0008; pointer-events: auto; }
+  #online-adventure-hud[hidden], #online-adventure-hud [hidden] { display: none; }
+  #online-adventure-hud .hud-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+  #online-adventure-hud .hud-kicker { color: #9ad; letter-spacing: .12em; text-transform: uppercase; font-size: 10px; }
+  #online-adventure-hud h3 { margin: 3px 0 8px; font-size: 17px; }
+  #online-adventure-hud p { margin: 5px 0; line-height: 1.45; }
+  #online-adventure-hud progress { display: block; width: 100%; height: 12px; margin: 9px 0; accent-color: #e0a43b; }
+  #online-adventure-hud button { margin-top: 8px; }
+  #online-profile-banner { width: 12px; height: 12px; display: inline-block; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+  #online-legacy-card { color: #9aaabd; font-size: 12px; }
+  #online-legacy-card summary { cursor: pointer; }
+  #online-legacy-card p { color: #b6c0ce; }
+  body.touch #online-adventure-hud { left: 8px; bottom: calc(8px + env(safe-area-inset-bottom)); width: min(320px, calc(100vw - 16px)); }
   body.touch #menu button, body.touch #menu select { padding: 8px 12px; font-size: 14px; }
-  #overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.6); padding: 16px; }
-  #panel { display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: 520px; text-align: center; }
+  /* The start overlay lets clicks through to the bar, so Online (sign in, cloud saves) works
+     before the game starts; only its own panel takes the pointer. */
+  #overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.6); padding: 16px; pointer-events: none; }
+  #panel { display: flex; flex-direction: column; align-items: center; gap: 14px; max-width: 520px; text-align: center; pointer-events: auto; }
   #help { margin: 0; line-height: 1.5; color: #e8c37a; }
   .controls { display: none; }
   body.touch { overscroll-behavior: none; touch-action: none; -webkit-user-select: none; user-select: none; }
@@ -99,6 +160,7 @@
 </head>
 <body>
 <div id="stage"><canvas id="canvas" tabindex="0"></canvas><video id="remote" playsinline></video></div>
+<canvas id="pose-radar" width="192" height="192" aria-label="Nearby players radar"></canvas>
 <div id="touch" class="controls" aria-hidden="true">
   <div class="cluster left">
     <div class="shoulders"><div class="ctl shoulder" data-btn="256">L2</div><div class="ctl shoulder" data-btn="1024">L1</div></div>
@@ -123,7 +185,9 @@
   </div>
 </div>
 <div id="bar"><span id="status">Loading…</span><span id="stats"></span>
+  <button id="online-button" class="host-only" type="button" title="Sign in, share your car with other players and keep your progress on your account">Online</button>
   <button id="invite" class="host-only" type="button" disabled title="Make a room and copy a link that lets a friend watch and play as player 2">Invite</button>
+  <button id="mmo-invite" class="host-only" type="button" disabled title="Make an independent-game room and copy a link to exchange car poses">MMO room</button>
   <button id="menu-toggle" type="button" aria-expanded="false" aria-controls="menu">Menu ▴</button>
   <button id="fullscreen" type="button" title="Fullscreen (F or double click)">Fullscreen</button></div>
 <div id="menu" hidden>
@@ -150,6 +214,69 @@
   <button id="export-card" class="host-only" type="button" title="Download the memory card in slot 1 as a .ps2 file">Export card</button>
   <button id="import-card" class="host-only" type="button" title="Put a .ps2 memory card file in slot 1">Import card</button>
   <input id="import-file" type="file" accept=".ps2" hidden>
+</div>
+<div id="online" hidden>
+  <div class="row"><h2>Road Trip Online</h2><button id="online-close" type="button">Close</button></div>
+  <div id="online-signin">
+    <div class="row"><input id="online-name" type="text" placeholder="Name" maxlength="16" autocomplete="username" inputmode="none"></div>
+    <div class="row"><input id="online-pass" type="password" placeholder="Password" autocomplete="current-password" inputmode="none"></div>
+    <div id="online-keyboard-hint">Keyboard enters text in the selected field.</div>
+    <div id="online-keyboard" aria-label="On-screen keyboard"></div>
+    <div class="row"><button id="online-login" type="button">Sign in</button><button id="online-signup" type="button">Create account</button></div>
+  </div>
+  <div id="online-signed" hidden>
+    <div class="row"><span id="online-who"></span><button id="online-logout" type="button">Sign out</button></div>
+    <div class="row"><span>Developer unlocks</span><button id="online-dev-mode" type="button">Dev mode: ON</button></div>
+    <div class="row"><span id="online-counts"></span><button id="online-drive" type="button">Drive</button><button id="online-leave" type="button" hidden>Leave</button></div>
+    <div class="row"><span id="online-drift"></span></div>
+    <div class="row" id="online-race-row" hidden><span id="online-race"></span><button id="online-race-enter" type="button">Enter race</button><button id="online-race-done" type="button" hidden>Finished</button></div>
+    <label><input id="online-watch" type="checkbox"> Spectate: watch, don't share my car</label>
+    <hr>
+    <div class="row"><span id="online-profile-summary">Online profile loads when you start Online Adventure.</span></div>
+    <details id="online-legacy-card"><summary>Legacy memory card transfer</summary>
+      <p>These tools copy the whole PS2 memory card, including Offline Adventure saves. Import replaces this device's card.</p>
+      <div class="row"><button id="online-download" type="button">Import cloud card</button><button id="online-upload" type="button">Upload this card</button></div>
+    </details>
+    <ul id="online-roster"></ul>
+  </div>
+  <p id="online-msg"></p>
+</div>
+<div id="online-country-setup" hidden role="dialog" aria-modal="true" aria-labelledby="online-country-title">
+  <section id="online-country-card">
+    <div id="online-prologue-kicker">Your new chapter</div>
+    <h2 id="online-country-title">Name your country</h2>
+    <p>This creates a separate Online Adventure profile. Your Offline Adventure memory card stays as it is. This early build still uses the game’s current save for its car and map; direct entry to a separate online start is the next game-runtime step.</p>
+    <label for="online-country-name">Country name</label>
+    <input id="online-country-name" type="text" maxlength="24" autocomplete="off" placeholder="Sunset Republic">
+    <label for="online-country-motto">Country motto (optional)</label>
+    <input id="online-country-motto" type="text" maxlength="40" autocomplete="off" placeholder="Keep the road open">
+    <label for="online-country-banner-select">Banner color</label>
+    <select id="online-country-banner-select">
+      <option value="#e0a43b">Sunset gold</option><option value="#4c9d78">Pine green</option>
+      <option value="#5485c3">Roadside blue</option><option value="#b86b9f">Orchid</option>
+      <option value="#d66c54">Signal red</option><option value="#9a91cf">Beacon violet</option>
+    </select>
+    <p id="online-country-message" aria-live="polite"></p>
+    <div id="online-country-actions"><button id="online-country-cancel" type="button">Back</button><button id="online-country-create" type="button">Create country</button></div>
+  </section>
+</div>
+<section id="online-adventure-hud" hidden aria-live="polite" aria-label="Online Adventure mission">
+  <div class="hud-top"><span class="hud-kicker">Online Adventure</span><strong id="online-hud-coins">0 Coins</strong></div>
+  <h3><span id="online-profile-banner"></span><span id="online-hud-country">Your country</span></h3>
+  <p id="online-hud-mission-title">The Open Road Accord</p>
+  <p id="online-hud-objective">Drive into a town to find your contact.</p>
+  <p id="online-hud-sidequest" hidden></p>
+  <progress id="online-hud-progress" max="120" value="0" hidden></progress>
+  <p id="online-hud-status">Join the online world in a town to begin.</p>
+  <button id="online-hud-capture" type="button" title="Save the place you are driving in and store it on the server as the Online Adventure start">Use this place as the online start</button>
+</section>
+<div id="online-prologue" hidden role="dialog" aria-modal="true" aria-labelledby="online-prologue-title">
+  <section id="online-prologue-card">
+    <div id="online-prologue-kicker">A new chapter</div>
+    <h2 id="online-prologue-title">The road continues</h2>
+    <p id="online-prologue-copy"></p>
+    <div id="online-prologue-actions"><button id="online-prologue-skip" type="button">Skip story</button><button id="online-prologue-next" type="button">Continue</button></div>
+  </section>
 </div>
 <button id="exit-fullscreen" type="button">Exit fullscreen</button>
 <div id="overlay"><div id="panel"><p id="help" hidden></p><button id="start" disabled>Loading…</button></div></div>
@@ -244,7 +371,9 @@ document.addEventListener('pointerdown', (e) => {
 const canvas = document.getElementById('canvas');
 const params = new URLSearchParams(location.search);
 const guestRoom = params.get('join');
+const independentGuest = !!guestRoom && params.get('mode') === 'independent';
 if (guestRoom) document.body.classList.add('guest');
+if (independentGuest) document.body.classList.add('independent', 'mmo');
 
 function missingFeatures() {
   const header = [0, 97, 115, 109, 1, 0, 0, 0, 1, 4, 1, 96, 0, 0, 3, 2, 1, 0, 10];
@@ -263,7 +392,7 @@ function missingFeatures() {
   if (!accepts([0, 0xFD, 0x0C].concat(new Array(16).fill(0), [0x1A, 0x0B]))) missing.push('WebAssembly SIMD');
   return missing;
 }
-const missing = guestRoom ? [] : missingFeatures();
+const missing = guestRoom && !independentGuest ? [] : missingFeatures();
 
 const touchRoot = document.getElementById('touch'), knob = document.getElementById('knob');
 let touchPad = { buttons: 0, x: 0, y: 0, stick: false };
@@ -497,7 +626,7 @@ controlsButton.addEventListener('click', () => {
 });
 
 function fitCanvas() {
-  if (guestRoom) return;
+  if (guestRoom && !independentGuest) return;
   const ratio = Math.min(window.devicePixelRatio || 1, 2);
   const width = Math.max(1, Math.round(canvas.clientWidth * ratio));
   const height = Math.max(1, Math.round(canvas.clientHeight * ratio));
@@ -598,6 +727,7 @@ async function startAudio() {
 }
 
 const keys = new Set();
+let onlinePrologueActive = false;
 const keyMap = { ArrowUp: 4, ArrowRight: 5, ArrowDown: 6, ArrowLeft: 7, KeyZ: 14, KeyX: 13, KeyA: 15, KeyS: 12,
                  KeyQ: 10, KeyW: 11, Digit1: 8, Digit2: 9, Enter: 3, Backspace: 0 };
 const stickKeys = new Set(['KeyI', 'KeyJ', 'KeyK', 'KeyL']);
@@ -609,9 +739,9 @@ const axis = (v) => Math.max(0, Math.min(255, Math.round((v + 1) * 127.5)));
 // the keyboard and touch controls are player 1 along with the first gamepad, a second gamepad is player 2
 const players = [0, 1].map(() => ({ plugged: false, pad: -1, pressure: '', strong: 0, weak: 0, rumbleAt: 0 }));
 const motorStrength = (v) => v < 16 ? 0 : Math.sqrt(v / 255);
-function pollPlayer(port, gamepad, own) {
+function pollPlayer(port, gamepad, own, forcePlugged = false) {
   const player = players[port];
-  const plugged = port === 0 || !!gamepad;
+  const plugged = port === 0 || !!gamepad || forcePlugged;
   if (plugged !== player.plugged) {
     player.plugged = plugged;
     Module._ps2web_pad_connected(port, plugged ? 1 : 0);
@@ -695,10 +825,18 @@ function orderedPads() {
   return pads;
 }
 function pollInput() {
+  if (onlinePrologueActive) {
+    keys.clear();
+    touchPad = { buttons: 0, x: 0, y: 0, stick: false };
+    const pads = orderedPads();
+    pollPlayer(0, null, false, true);
+    pollPlayer(1, null, false, !remotePlayer);
+    return;
+  }
   const pads = orderedPads();
   pollPlayer(0, pads[0] || null, true);
   if (remotePlayer && performance.now() - remoteSeen > 3000) (guestLeaves.get(remotePlayer) || releaseRemote)(remotePlayer);
-  if (!remotePlayer) pollPlayer(1, pads[1] || null, false);
+  if (!remotePlayer) pollPlayer(1, pads[1] || null, false, !pads[1]);
 }
 
 const rtcConfig = { iceServers: [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302'] }] };
@@ -736,11 +874,1156 @@ function gathered(pc) {
 }
 
 const inviteButton = document.getElementById('invite');
-let room = null, hostStream = null, remotePlayer = null, remoteSeen = 0;
+let room = null, roomMode = 'shared', hostStream = null, remotePlayer = null, remoteSeen = 0;
+const mmoInviteButton = document.getElementById('mmo-invite');
 const guestLeaves = new Map();
+function publishPose(id, data) {
+  try {
+    const message = JSON.parse(data);
+    if (message.t !== 'p' || !Array.isArray(message.q) || message.q.length !== 4 || !message.q.every(Number.isFinite) || message.q.some((v) => Math.abs(v) > 100000) || Math.abs(message.q[3]) > Math.PI * 2) return;
+    const receivedAt = performance.now();
+    if (!Module.remoteRoadTripPoses) Module.remoteRoadTripPoses = new Map();
+    if (!Module.remoteRoadTripPoseHistory) Module.remoteRoadTripPoseHistory = new Map();
+    const pose = { x: message.q[0], y: message.q[1], z: message.q[2], heading: message.q[3], receivedAt };
+    Module.remoteRoadTripPoses.set(id, pose);
+    const history = Module.remoteRoadTripPoseHistory.get(id) || [];
+    history.push(pose);
+    while (history.length > 8 || (history.length > 1 && receivedAt - history[0].receivedAt > 1000)) history.shift();
+    Module.remoteRoadTripPoseHistory.set(id, history);
+  } catch (e) {}
+}
+function clearRemotePose(id) {
+  if (Module.remoteRoadTripPoses) Module.remoteRoadTripPoses.delete(id);
+  if (Module.remoteRoadTripPoseHistory) Module.remoteRoadTripPoseHistory.delete(id);
+}
+function localPose() {
+  if (!Module.running || typeof Module._ps2web_roadtrip_pose !== 'function') return null;
+  const pose = [0, 1, 2, 3].map((field) => Module._ps2web_roadtrip_pose(0, field));
+  return pose.every(Number.isFinite) && pose.some((v) => Math.abs(v) > 100000) === false && Math.abs(pose[3]) <= Math.PI * 2 && (pose[0] !== 0 || pose[2] !== 0) ? pose : null;
+}
+// Poses arrive from the room every ~50 ms; sample them 100 ms in the past so a car moves
+// smoothly between two arrivals instead of stepping.
+function remoteAt(id, pose, now) {
+  const samples = Module.remoteRoadTripPoseHistory && Module.remoteRoadTripPoseHistory.get(id);
+  if (!samples || !samples.length) return pose;
+  const target = now - 100;
+  let before = samples[0], after = samples[samples.length - 1];
+  for (let i = 1; i < samples.length; ++i) {
+    if (samples[i].receivedAt >= target) { before = samples[i - 1]; after = samples[i]; break; }
+  }
+  const span = after.receivedAt - before.receivedAt;
+  const amount = span > 0 ? Math.max(0, Math.min(1, (target - before.receivedAt) / span)) : 1;
+  let turn = after.heading - before.heading;
+  turn = Math.atan2(Math.sin(turn), Math.cos(turn));
+  return {
+    x: before.x + (after.x - before.x) * amount,
+    y: before.y + (after.y - before.y) * amount,
+    z: before.z + (after.z - before.z) * amount,
+    heading: before.heading + turn * amount,
+  };
+}
+function drawPoseRadar() {
+  requestAnimationFrame(drawPoseRadar);
+  const radar = document.getElementById('pose-radar');
+  if (!radar || !document.body.classList.contains('mmo') || !Module) return;
+  const ctx = radar.getContext('2d');
+  const size = radar.width, cx = size / 2, cy = size / 2 + 5, radius = 68;
+  ctx.clearRect(0, 0, size, size);
+  ctx.fillStyle = 'rgba(9, 14, 22, 0.84)';
+  ctx.beginPath(); ctx.arc(cx, cy, 91, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(150, 195, 225, 0.32)'; ctx.lineWidth = 1;
+  for (const fraction of [0.5, 1]) { ctx.beginPath(); ctx.arc(cx, cy, radius * fraction, 0, Math.PI * 2); ctx.stroke(); }
+  ctx.beginPath(); ctx.moveTo(cx - radius, cy); ctx.lineTo(cx + radius, cy); ctx.moveTo(cx, cy - radius); ctx.lineTo(cx, cy + radius); ctx.stroke();
+  ctx.fillStyle = '#d8e8f5'; ctx.font = '11px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('NEARBY', cx, 16);
+  const current = localPose();
+  const latest = Module.remoteRoadTripPoses;
+  const now = performance.now(), range = 500;
+  if (latest) {
+    for (const [id, pose] of latest) {
+      if (now - pose.receivedAt > 1500) {
+        clearRemotePose(id);
+        continue;
+      }
+      const remote = remoteAt(id, pose, now);
+      if (!current) continue;
+      const dx = remote.x - current[0], dz = remote.z - current[2], heading = current[3];
+      const right = -dx * Math.sin(heading) + dz * Math.cos(heading);
+      const forward = dx * Math.cos(heading) + dz * Math.sin(heading);
+      const distance = Math.hypot(right, forward), scale = Math.min(1, radius / range, distance ? radius / distance : 1);
+      const x = cx + right * scale, y = cy - forward * scale;
+      const relativeHeading = remote.heading - heading;
+      ctx.save(); ctx.translate(x, y); ctx.rotate(-relativeHeading);
+      ctx.fillStyle = '#53e6ff'; ctx.strokeStyle = '#06131a'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(6, 7); ctx.lineTo(0, 4); ctx.lineTo(-6, 7); ctx.closePath(); ctx.fill(); ctx.stroke(); ctx.restore();
+      ctx.fillStyle = '#d8f8ff'; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText(Math.round(distance) + 'm', x, Math.min(size - 5, y + 18));
+    }
+  }
+  ctx.fillStyle = current ? '#ffe27a' : '#8794a0'; ctx.strokeStyle = '#17130a'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx, cy - 8); ctx.lineTo(cx + 7, cy + 7); ctx.lineTo(cx, cy + 4); ctx.lineTo(cx - 7, cy + 7); ctx.closePath(); ctx.fill(); ctx.stroke();
+  if (!current) { ctx.fillStyle = '#c4ccd3'; ctx.font = '10px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('WAITING FOR CAR', cx, size - 7); }
+}
+
+// The other players' cars in the 3D view. They are the game's own cars: Road Trip keeps the
+// player's car and the street's traffic in twelve slots at 0x0177ACE0, and the runtime moves the
+// last four onto the poses of the players we are following (host/web.cpp, ps2web_roadtrip_remote).
+// The town draws those slots with its models, paint, lighting and shadows, depth-tested against the
+// buildings. The pose has to land inside the draw: the street's traffic AI rebuilds each traffic
+// car's transform from its own route state every frame, so the runtime writes the pose from the
+// recompiled hook at the top of the car draw (0x00243190), after the AI and before the transform is
+// built. `ps2web_roadtrip_remote_drawn` is how many borrowed cars that draw placed last frame, and
+// `ps2web_roadtrip_remote_drift` how far the AI walks a borrowed car back between frames. Nothing
+// is drawn over the picture here.
+const REMOTE_SLOTS = 4;     // the slots the runtime borrows (kRemoteMax)
+const REMOTE_RANGE = 400;   // do not borrow a car for someone further away than this
+const remoteSlots = new Map();  // player id -> slot index
+
+function releaseRemoteCars() {
+  remoteSlots.clear();
+  for (let i = 0; i < REMOTE_SLOTS; ++i) Module._ps2web_roadtrip_remote(i, 0, 0, 0, 0, 0);
+  Module.remoteRoadTripDrawn = 0;
+  const line = document.getElementById('online-drift');
+  if (line) line.textContent = '';
+  driftPeak = 0;
+}
+// Whether the borrowed cars reach the screen, and how hard the traffic AI fights them.
+// `ps2web_roadtrip_remote_drawn` counts the borrowed cars the last draw placed (a car off screen or
+// behind a building is skipped before it is placed), and `ps2web_roadtrip_remote_drift` is how far
+// (world units) the AI walked a borrowed car away from its pose between two frames; a car is about 4
+// units long, so a fraction of a unit is idle traffic and a number near the car's own size means the
+// AI is driving that slot somewhere else between frames. The page reads both while borrowing slots,
+// so the numbers come from an ordinary cruise.
+let driftPeak = 0, driftPeakAt = 0, driftSaid = 0;
+function noteRemoteDrift() {
+  const line = document.getElementById('online-drift');
+  if (!line || typeof Module._ps2web_roadtrip_remote_drift !== 'function') return;
+  const now = performance.now();
+  if (!remoteSlots.size) {
+    if (line.textContent) line.textContent = '';
+    driftPeak = 0;
+    return;
+  }
+  let worst = 0;
+  for (const slot of remoteSlots.values()) {
+    const value = Module._ps2web_roadtrip_remote_drift(slot);
+    if (Number.isFinite(value) && value > worst) worst = value;
+  }
+  const placed = typeof Module._ps2web_roadtrip_remote_drawn === 'function' ? Module._ps2web_roadtrip_remote_drawn() : -1;
+  if (now - driftPeakAt > 10000) { driftPeak = worst; driftPeakAt = now; }
+  else if (worst > driftPeak) driftPeak = worst;
+  if (now - driftSaid < 250) return;
+  driftSaid = now;
+  line.textContent = 'Borrowed cars: the game drew ' + (placed < 0 ? '?' : placed) + ' of ' + remoteSlots.size +
+    ' in its last frame; the traffic walks them back up to ' + worst.toFixed(2) + ' units between frames (' +
+    driftPeak.toFixed(2) + ' in 10 s).';
+}
+function freeRemoteSlot() {
+  const taken = new Set(remoteSlots.values());
+  for (let i = 0; i < REMOTE_SLOTS; ++i) if (!taken.has(i)) return i;
+  return -1;
+}
+function placeRemoteCars() {
+  requestAnimationFrame(placeRemoteCars);
+  if (!Module || typeof Module._ps2web_roadtrip_remote !== 'function') return;
+  const latest = Module.remoteRoadTripPoses;
+  // Menus, shops, the title and its attract demo keep the last pose, so ask the game whether it is
+  // drawing the street we are driving in before borrowing any of its cars.
+  const street = document.body.classList.contains('mmo') && Module.running &&
+    typeof Module._ps2web_roadtrip_gameplay === 'function' && Module._ps2web_roadtrip_gameplay() === 1;
+  if (!street || !latest || !latest.size) {
+    if (remoteSlots.size) releaseRemoteCars();
+    return;
+  }
+  const current = localPose();
+  const now = performance.now();
+  let drawn = 0;
+  for (const [id, pose] of latest) {
+    const slot = remoteSlots.get(id);
+    if (now - pose.receivedAt > 1500) {
+      clearRemotePose(id);
+      if (slot !== undefined) {
+        remoteSlots.delete(id);
+        Module._ps2web_roadtrip_remote(slot, 0, 0, 0, 0, 0);
+      }
+      continue;
+    }
+    if (current && Math.hypot(pose.x - current[0], pose.z - current[2]) > REMOTE_RANGE) continue;
+    let index = slot;
+    if (index === undefined) {
+      index = freeRemoteSlot();
+      if (index < 0) continue;
+      remoteSlots.set(id, index);
+    }
+    const remote = remoteAt(id, pose, now);
+    Module._ps2web_roadtrip_remote(index, remote.x, remote.y, remote.z, remote.heading, 1);
+    ++drawn;
+  }
+  Module.remoteRoadTripDrawn = drawn;
+  noteRemoteDrift();
+}
+// Our row in the game's own pause list. The page rebuilds that list every time it opens, so the
+// runtime appends the row to the page's own state and this keeps asking it to (host/web.cpp,
+// ps2web_roadtrip_pause_rows). Nothing is drawn here: the game draws the row, its plate and its
+// cursor with the same sheet the other six come from.
+function keepNativeRows() {
+  requestAnimationFrame(keepNativeRows);
+  if (!Module || !Module.running || typeof Module._ps2web_roadtrip_pause_rows !== 'function') return;
+  Module._ps2web_roadtrip_pause_rows();
+}
+requestAnimationFrame(keepNativeRows);
+
+// Road Trip Online. The server (scripts/serve.py and scripts/online.py) knows who a player
+// is, keeps the memory card that carries their progress between devices, and relays the cars
+// of everyone in one place; every page still runs its own game, and the runtime draws those cars
+// with the game's own models (ps2web_roadtrip_remote). Spectators join a place without sharing
+// their own car.
+//
+// There is one shared MMO world across the whole journey. Place keys are routing cells: the game
+// streams towns, roads and races as separate scenes, so only cars in the same loaded scene can be
+// drawn together. Story chapter never partitions players; progression remains on each memory card.
+const ONLINE_KEY = 'ps2online-session';
+// The game's own town names ([towns] in config/game_state.toml); field areas are the road between them.
+const TOWNS = ['My Garage', 'Peach Town', 'Fuji City', 'Sandpolis', 'Chestnut Canyon', 'Mushroom Road',
+  'White Mountain', 'Papaya Island', 'Cloud Hill', 'My City'];
+const online = { token: '', name: '', joined: false, watching: false, key: '', label: '', racing: false, launchRequested: false, launchStarting: false, devMode: false,
+  players: [], spectators: 0, timer: 0, polling: false, addedMmo: false, uploadTimer: 0,
+  profile: null, mission: null, adventureMode: false, profileLoading: false, missionPolling: false,
+  socket: null, socketWorld: '', socketOpened: false, socketTries: 0, socketTimer: 0, worlds: {},
+  quest: { key: '', installed: false, talking: false, checked: 0, members: [] } };
+let onlineSessionReady = true, onlineActiveWaits = 0;
+try { online.devMode = localStorage.getItem('roadtrip-online-dev-mode') === '1'; } catch (e) {}
+const onlinePanel = document.getElementById('online');
+const onlineButton = document.getElementById('online-button');
+const onlineMsg = document.getElementById('online-msg');
+const onlineNameInput = document.getElementById('online-name');
+const onlinePassInput = document.getElementById('online-pass');
+let onlineKeyboardTarget = onlineNameInput;
+let onlineKeyboardUpper = false;
+let onlineKeyboardSymbolsMode = false;
+const onlineKeyboard = document.getElementById('online-keyboard');
+const onlineKeyboardRows = [
+  ['q','w','e','r','t','y','u','i','o','p'],
+  ['a','s','d','f','g','h','j','k','l'],
+  ['SHIFT','z','x','c','v','b','n','m','BACKSPACE'],
+  ['123','SPACE','NEXT','CLEAR']
+];
+function renderOnlineKeyboard() {
+  onlineKeyboard.replaceChildren();
+  for (const row of onlineKeyboardRows) for (const key of row) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = key === 'BACKSPACE' ? '⌫' : key === 'SPACE' ? 'Space' : key === 'NEXT' ? 'Next' : key === 'CLEAR' ? 'Clear' : key === 'SHIFT' ? (onlineKeyboardUpper ? 'Caps' : 'Shift') : key === '123' ? '123' : onlineKeyboardUpper ? key.toUpperCase() : key;
+    button.setAttribute('aria-label', key === 'BACKSPACE' ? 'Backspace' : key === 'SPACE' ? 'Space' : key);
+    if (['BACKSPACE', 'SHIFT', '123', 'NEXT', 'CLEAR'].includes(key)) button.classList.add('wide');
+    if (key === 'SPACE') button.classList.add('space');
+    button.addEventListener('click', () => pressOnlineKey(key));
+    onlineKeyboard.append(button);
+  }
+  document.querySelectorAll('#online-name, #online-pass').forEach((input) => input.classList.toggle('selected', input === onlineKeyboardTarget));
+}
+function pressOnlineKey(key) {
+  if (key === 'SHIFT') { onlineKeyboardUpper = !onlineKeyboardUpper; renderOnlineKeyboard(); return; }
+  if (key === 'NEXT') { onlineKeyboardTarget = onlineKeyboardTarget === onlineNameInput ? onlinePassInput : onlineNameInput; onlineKeyboardTarget.focus(); renderOnlineKeyboard(); return; }
+  if (key === '123') {
+    onlineKeyboardSymbolsMode = !onlineKeyboardSymbolsMode;
+    onlineKeyboardRows[0] = onlineKeyboardSymbolsMode ? '1234567890'.split('') : ['q','w','e','r','t','y','u','i','o','p'];
+    onlineKeyboardRows[1] = onlineKeyboardSymbolsMode ? '-/:;()$&@"'.split('') : ['a','s','d','f','g','h','j','k','l'];
+    onlineKeyboardRows[2] = onlineKeyboardSymbolsMode ? ['SHIFT','.',',','?','!','@','#','BACKSPACE'] : ['SHIFT','z','x','c','v','b','n','m','BACKSPACE'];
+    renderOnlineKeyboard(); return;
+  }
+  const input = onlineKeyboardTarget;
+  const start = input.selectionStart ?? input.value.length, end = input.selectionEnd ?? start;
+  if (key === 'BACKSPACE') {
+    const from = start === end ? Math.max(0, start - 1) : start;
+    input.setRangeText('', from, end, 'end');
+  } else if (key === 'CLEAR') input.value = '';
+  else {
+    const value = key === 'SPACE' ? ' ' : (onlineKeyboardUpper ? key.toUpperCase() : key);
+    input.setRangeText(value, start, end, 'end');
+    if (onlineKeyboardUpper && key !== 'SPACE') onlineKeyboardUpper = false;
+  }
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+  input.focus();
+  renderOnlineKeyboard();
+}
+for (const input of [onlineNameInput, onlinePassInput]) input.addEventListener('focus', () => { onlineKeyboardTarget = input; renderOnlineKeyboard(); });
+renderOnlineKeyboard();
+const onlinePrologue = document.getElementById('online-prologue');
+const onlineProloguePages = [
+  ['The story so far', 'Offline Adventure follows one driver on a journey through the country, with the story ultimately leading to the presidency. You can play that adventure whenever you like.'],
+  ['Your own country', 'Online Adventure starts a new chapter. You arrive as the president of your own country, with your own name and customized car. You can jump in without finishing Offline Adventure.'],
+  ['A title worth racing for', 'Meet real players, race, earn Coins, and compete for the online season title: World Champion President. Your offline story and save remain yours to continue separately.']
+];
+let onlineProloguePage = 0;
+function finishOnlinePrologue() {
+  onlinePrologueActive = false;
+  onlinePrologue.hidden = true;
+  onlinePanel.hidden = false;
+  onlineRender();
+  onlineSay('Online Adventure selected. Sign in or create an account to continue.');
+  try { localStorage.setItem('roadtrip-online-prologue-seen', '1'); } catch (e) {}
+  if (online.token && onlineSessionReady) prepareOnlineAdventure();
+}
+async function prepareOnlineAdventure() {
+  if (online.profileLoading || online.launchStarting || !online.token || !onlineSessionReady) return;
+  online.profileLoading = true;
+  try {
+    const data = await onlineJson(onlineQuery('online/profile'));
+    online.profile = data.profile || null;
+    online.mission = data.mission || null;
+    if (online.profile) activateOnlineAdventure();
+    else {
+      onlinePanel.hidden = true;
+      document.getElementById('online-country-message').textContent = '';
+      document.getElementById('online-country-setup').hidden = false;
+      document.getElementById('online-country-name').focus();
+    }
+  } catch (error) { onlineSay(error.message, true); }
+  finally { online.profileLoading = false; }
+}
+async function createOnlineCountry() {
+  const country = document.getElementById('online-country-name').value.trim();
+  const motto = document.getElementById('online-country-motto').value.trim();
+  const banner = document.getElementById('online-country-banner-select').value;
+  const message = document.getElementById('online-country-message');
+  if (!country) { message.textContent = 'Choose a country name first.'; return; }
+  message.textContent = 'Creating your country...';
+  try {
+    const data = await onlineJson(onlineQuery('online/profile'), { country, motto, banner });
+    online.profile = data.profile;
+    online.mission = data.mission || null;
+    document.getElementById('online-country-setup').hidden = true;
+    activateOnlineAdventure();
+  } catch (error) { message.textContent = error.message; }
+}
+document.getElementById('online-country-create').addEventListener('click', createOnlineCountry);
+document.getElementById('online-country-cancel').addEventListener('click', () => {
+  document.getElementById('online-country-setup').hidden = true;
+  onlinePanel.hidden = false;
+  online.launchRequested = false;
+});
+// A server can hold a saved state that Online Adventure boots from (/online/start). When it does,
+// the campaign begins in the world itself: the page reloads once with ?state= and the runtime's own
+// state loader puts the car in a driveable place, so nothing depends on the offline story, its
+// new-game sequence or its memory card.
+async function onlineStartState() {
+  try {
+    const response = await fetch('online/start', { method: 'HEAD', cache: 'no-store' });
+    if (!response.ok || !Number(response.headers.get('content-length') || 0)) return '';
+    return 'online/start';
+  } catch (error) { return ''; }
+}
+async function activateOnlineAdventure() {
+  if (online.launchStarting) return;
+  online.launchStarting = true;
+  online.adventureMode = true;
+  const start = await onlineStartState();
+  if (start) {
+    const params = new URLSearchParams(location.search);
+    params.set('state', start);
+    params.set('online', '1');
+    onlinePrologueActive = false;
+    onlinePrologue.hidden = true;
+    onlinePanel.hidden = true;
+    online.launchRequested = false;
+    onlineSay('Starting your Online Adventure…');
+    location.replace(location.pathname + '?' + params.toString());
+    return;
+  }
+  if (typeof Module._ps2web_activate_online_adventure === 'function') Module._ps2web_activate_online_adventure();
+  onlinePrologueActive = false;
+  onlinePrologue.hidden = true;
+  onlinePanel.hidden = true;
+  online.launchRequested = false;
+  onlineSay('Loading your Online Adventure…');
+  setTimeout(() => {
+    if (!Module.running) return;
+    keys.add('KeyX');
+    setTimeout(() => keys.delete('KeyX'), 140);
+    onlineActiveWaits = 0;
+    setTimeout(waitForOnlineWorld, 250);
+  }, 100);
+}
+function waitForOnlineWorld() {
+  if (!Module.running) return;
+  if (typeof Module._ps2web_roadtrip_gameplay === 'function' && Module._ps2web_roadtrip_gameplay() === 1) {
+    onlineJoin();
+    return;
+  }
+  if (online.token && ++onlineActiveWaits < 720) setTimeout(waitForOnlineWorld, 500);
+}
+function showOnlineProloguePage() {
+  const [title, copy] = onlineProloguePages[onlineProloguePage];
+  document.getElementById('online-prologue-title').textContent = title;
+  document.getElementById('online-prologue-copy').textContent = copy;
+  document.getElementById('online-prologue-next').textContent = onlineProloguePage === onlineProloguePages.length - 1 ? 'Start Online Adventure' : 'Continue';
+}
+function startOnlinePrologue() {
+  let seen = false;
+  try { seen = localStorage.getItem('roadtrip-online-prologue-seen') === '1'; } catch (e) {}
+  if (online.token && onlineSessionReady && seen) { prepareOnlineAdventure(); return; }
+  onlineProloguePage = 0;
+  onlinePrologueActive = true;
+  onlinePanel.hidden = true;
+  onlinePrologue.hidden = false;
+  showOnlineProloguePage();
+}
+document.getElementById('online-prologue-next').addEventListener('click', () => {
+  if (++onlineProloguePage >= onlineProloguePages.length) finishOnlinePrologue();
+  else showOnlineProloguePage();
+});
+document.getElementById('online-prologue-skip').addEventListener('click', finishOnlinePrologue);
+// The place the car is in, from the game's own state words (host/web.cpp, ps2web_roadtrip_place):
+// a town, a field area between towns, or a race. Null in a menu, a shop or at the title, which is
+// where a player shares nothing.
+function placeNow() {
+  if (!Module || !Module.running || typeof Module._ps2web_roadtrip_place !== 'function') return null;
+  const kind = Module._ps2web_roadtrip_place(0);
+  if (kind < 1 || kind > 3) return null;
+  const location = Module._ps2web_roadtrip_place(1);
+  const area = location >= 0 && location <= 21 ? location : 0;
+  if (kind === 3) {
+    const course = Module._ps2web_roadtrip_place(2);
+    return { key: 'race:' + (course >= 0 ? course : area), label: 'Race: ' + (TOWNS[area] || 'a town'), racing: true };
+  }
+  if (kind === 1) return { key: 'town:' + area, label: TOWNS[area] || 'a town', racing: false };
+  return { key: 'road:' + area, label: 'On the road', racing: false };
+}
+// The cars of one place mean nothing in another: after driving on to the next town, or starting a
+// race, none of them is anywhere the server would have put them.
+function onlineForgetCars() {
+  for (const id of [...(Module.remoteRoadTripPoses ? Module.remoteRoadTripPoses.keys() : [])]) if (id.indexOf('o:') === 0) clearRemotePose(id);
+  online.players = [];
+  online.spectators = 0;
+}
+// Follows the car into the place it drives in, and says whether there is one. A long poll or a
+// pose sent under the old key can still land afterwards, so callers read `online.key` again.
+function onlineNotePlace() {
+  const place = placeNow();
+  if (!place) return false;
+  if (place.key === online.key) {
+    online.label = place.label;
+    online.racing = place.racing;
+    return true;
+  }
+  const moved = !!online.key;
+  online.key = place.key;
+  online.label = place.label;
+  online.racing = place.racing;
+  if (moved) onlineForgetCars();
+  onlineRender();
+  return true;
+}
+function onlineSay(text, bad) {
+  onlineMsg.textContent = text || '';
+  onlineMsg.style.color = bad ? '#ffb4a8' : '#9ad';
+}
+function renderOnlineAdventureHud() {
+  const hud = document.getElementById('online-adventure-hud');
+  const profile = online.profile;
+  hud.hidden = !(online.adventureMode && online.joined && profile);
+  if (!profile || hud.hidden) return;
+  document.getElementById('online-hud-country').textContent = profile.country;
+  document.getElementById('online-hud-coins').textContent = (profile.coins || 0) + ' Coins';
+  const banner = document.getElementById('online-profile-banner');
+  banner.style.background = profile.banner || '#e0a43b';
+  document.getElementById('online-hud-mission-title').textContent = 'The Open Road Accord';
+  const pack = online.story;
+  const chapter = pack && Array.isArray(pack.chapters)
+    ? (pack.chapters.find((c) => c.number === (profile.chapter || 1)) || pack.chapters[0]) : null;
+  if (chapter) {
+    document.getElementById('online-hud-mission-title').textContent = 'Chapter ' + chapter.number + ' · ' + chapter.title;
+    document.getElementById('online-hud-objective').textContent = chapter.contact + ': ' + chapter.objectives[0].text;
+  }
+  // The chapter's own objectives, as the server proved them: the next one the player has left is
+  // the only line of quest text in online mode. There is no second, older mission under it.
+  const status = document.getElementById('online-hud-status');
+  const bar = document.getElementById('online-hud-progress');
+  const sideLine = document.getElementById('online-hud-sidequest');
+  const sideQuests = online.storyState && Array.isArray(online.storyState.side_quests)
+    ? online.storyState.side_quests : [];
+  const sideQuest = sideQuests.find((quest) => quest.unlocked && !quest.complete);
+  if (sideQuest) {
+    const authored = (online.story && online.story.side_quests || []).find((quest) => quest.id === sideQuest.id);
+    const next = (sideQuest.objectives || []).find((objective) => !objective.done);
+    sideLine.textContent = 'Optional · ' + (sideQuest.title || 'Side quest') + ': '
+      + (next ? next.text : 'Return to your contact.');
+    sideLine.hidden = false;
+    if (authored) sideLine.title = 'Contact: ' + (authored.contact || 'quest giver');
+  } else {
+    sideLine.textContent = '';
+    sideLine.hidden = true;
+    sideLine.removeAttribute('title');
+  }
+  bar.hidden = true;
+  if (online.storyState) {
+    const list = online.storyState.objectives || [];
+    const next = list.find((objective) => !objective.done);
+    if (next) {
+      document.getElementById('online-hud-objective').textContent = next.text;
+      if (next.kind === 'drive' && next.goal) {
+        bar.hidden = false;
+        bar.max = next.goal;
+        bar.value = Math.min(next.progress || 0, next.goal);
+        status.textContent = Math.floor(bar.value) + ' / ' + Math.floor(bar.max) + ' travelled in '
+          + (chapter ? chapter.place_name : 'this town') + '.';
+      } else {
+        status.textContent = chapter && online.key !== chapter.place
+          ? 'Head for ' + chapter.place_name + '.'
+          : 'Objective ' + (list.filter((o) => o.done).length + 1) + ' of ' + list.length + '.';
+      }
+    } else if (list.length) {
+      document.getElementById('online-hud-objective').textContent = chapter ? chapter.outro : '';
+      status.textContent = 'Chapter complete. Move on when you are ready.';
+    }
+  } else {
+    // No story yet (not signed in, or the pack did not load): say so instead of inventing a quest.
+    status.textContent = online.watching ? 'Spectating; your own objectives are paused.'
+      : 'Sign in to see this chapter\'s objectives.';
+  }
+}
+async function refreshOnlineMission() {
+  if (!online.adventureMode || !online.joined || !online.token || online.missionPolling) return;
+  online.missionPolling = true;
+  try {
+    const data = await onlineJson(onlineQuery('online/profile'));
+    online.profile = data.profile || online.profile;
+    await loadOnlineStory();
+    renderOnlineAdventureHud();
+  } catch (error) { document.getElementById('online-hud-status').textContent = error.message; }
+  finally { online.missionPolling = false; }
+}
+// One click instead of a hidden menu: capture the running game where the player is standing and
+// hand the state to the server, which serves it back at /online/start so the next Online
+// Adventure boot begins in this place.
+async function captureOnlineStart() {
+  const status = document.getElementById('online-hud-status');
+  const button = document.getElementById('online-hud-capture');
+  if (!online.token) { status.textContent = 'Sign in first.'; return; }
+  button.disabled = true;
+  status.textContent = 'Capturing this place…';
+  try {
+    await requestState(false);
+    const bytes = FS.readFile(STATE_FILE);
+    try { FS.unlink(STATE_FILE); } catch (e) {}
+    const response = await fetch(onlineQuery('online/capture'), { method: 'POST', body: bytes });
+    let data = {};
+    try { data = await response.json(); } catch (e) {}
+    if (!response.ok) throw new Error(data.error || 'The server could not store the state.');
+    status.textContent = 'Captured ' + (data.start / 1048576).toFixed(0) + ' MB from ' + (online.label || 'this place') + ' as the online start.';
+  } catch (error) {
+    status.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+document.getElementById('online-hud-capture').addEventListener('click', captureOnlineStart);
+setInterval(refreshOnlineMission, 1500);
+function onlineQuery(path, extra) {
+  const query = new URLSearchParams(extra || {});
+  if (online.token) query.set('token', online.token);
+  const text = query.toString();
+  return text ? path + '?' + text : path;
+}
+// The in-game system menu (web/menu.js) reads the session and the account's crews and friends
+// through this bridge, so it never needs to know how the shell stores a token or builds a URL.
+window.roadtripBridge = {
+  session: () => ({ token: online.token, name: online.name, joined: online.joined,
+                    world: online.key, label: online.label }),
+  query: onlineQuery,
+  json: onlineJson,
+  say: onlineSay,
+};
+// The world over one socket (scripts/wsserver.py). online.py owns who is in which place; this
+// keeps the page's half: one connection, a join when the car drives into a new place, and a pose
+// ten times a second. A server that cannot upgrade keeps the long-poll path (onlinePollLoop).
+function onlineSocketUrl() {
+  const url = new URL(onlineQuery('online/socket'), location.href);
+  url.protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return url.href;
+}
+function onlineConnect() {
+  if (!online.joined || !online.token || online.socket || online.socketTimer) return;
+  if (typeof WebSocket !== 'function') { onlinePollLoop(); return; }
+  let socket = null;
+  try { socket = new WebSocket(onlineSocketUrl()); } catch (e) { onlinePollLoop(); return; }
+  online.socket = socket;
+  online.socketOpened = false;
+  socket.onopen = () => {
+    online.socketOpened = true;
+    online.socketTries = 0;
+    onlineSocketJoin();
+    socket.send(JSON.stringify({ t: 'worlds' }));
+  };
+  socket.onmessage = (event) => {
+    let data = null;
+    try { data = JSON.parse(event.data); } catch (e) { return; }
+    onlineSocketMessage(data);
+  };
+  socket.onerror = () => {};
+  socket.onclose = () => {
+    if (online.socket === socket) online.socket = null;
+    online.socketWorld = '';
+    if (!online.joined) return;
+    // A server that has never accepted a socket is an old one: poll it instead of retrying.
+    if (!online.socketOpened) { onlinePollLoop(); return; }
+    online.socketTimer = setTimeout(() => { online.socketTimer = 0; onlineConnect(); },
+      Math.min(8000, 500 * ++online.socketTries));
+  };
+}
+function onlineSocketJoin() {
+  const socket = online.socket;
+  if (!socket || socket.readyState !== 1 || !online.key || online.socketWorld === online.key) return;
+  online.socketWorld = online.key;
+  const pose = online.watching ? null : localPose();
+  socket.send(JSON.stringify({ t: 'join', world: online.key, label: online.label, watch: online.watching,
+    pose: pose ? { x: pose[0], y: pose[1], z: pose[2], h: pose[3] } : null }));
+}
+// A menu, a shop or the title is no place: the car leaves the world now, not after the timeout.
+function onlineSocketLeave() {
+  const socket = online.socket;
+  if (!socket || socket.readyState !== 1 || !online.socketWorld) return;
+  online.socketWorld = '';
+  socket.send(JSON.stringify({ t: 'leave' }));
+}
+function onlineSocketMessage(data) {
+  if (!data || typeof data !== 'object') return;
+  if (data.t === 'world') { onlineApplyWorld(data); return; }
+  if (data.t === 'pose') {
+    if (data.world !== online.key || data.name === online.name) return;
+    publishPose('o:' + data.name, JSON.stringify({ t: 'p', q: [data.x, data.y, data.z, data.h] }));
+    let player = online.players.find((one) => one.name === data.name);
+    if (!player) { player = { name: data.name }; online.players.push(player); }
+    Object.assign(player, { x: data.x, y: data.y, z: data.z, h: data.h, age: 0 });
+    online.spectators = data.spectators || 0;
+    onlineRender();
+    return;
+  }
+  if (data.t === 'left') {
+    if (data.name !== online.name) {
+      clearRemotePose('o:' + data.name);
+      online.players = online.players.filter((one) => one.name !== data.name);
+    }
+    online.spectators = data.spectators || 0;
+    onlineRender();
+    return;
+  }
+  if (data.t === 'counts') { online.spectators = data.spectators || 0; onlineRender(); return; }
+  if (data.t === 'worlds') { online.worlds = data.worlds || {}; onlineRender(); return; }
+  if (data.t === 'error') onlineSay(data.error, true);
+}
+async function onlineJson(path, body) {
+  const options = body === undefined
+    ? { cache: 'no-store' }
+    : { method: 'POST', cache: 'no-store', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) };
+  const response = await fetch(path, options);
+  let data = {};
+  try { data = await response.json(); } catch (e) {}
+  if (!response.ok) throw new Error(data.error || 'The server answered ' + response.status + '.');
+  return data;
+}
+function cardPresent() {
+  try { return FS.readFile(CARD_FILE).length === CARD_BYTES; } catch (e) { return false; }
+}
+// Races start together. The game has no lobby, so the relay holds the clock (scripts/online.py,
+// race()): the first player to enter a course opens a session that starts a fixed countdown later
+// whatever anyone else does. This panel counts down to that moment and the player starts the course
+// in their own copy of the game when it hits zero. The finish a page reports is measured from that
+// start, so the server can bound it (not before the start, not twice, not longer than the session
+// has run) but not prove it; checkpoints from the game's own race state are what would.
+let raceSession = null;
+function onlineRaceText() {
+  const session = raceSession;
+  if (!session) return '';
+  const entered = session.count + (session.count === 1 ? ' entered' : ' entered');
+  const board = session.entrants.filter((e) => e.time !== null).slice(0, 4)
+    .map((e, i) => (i + 1) + '. ' + e.name + ' ' + e.time.toFixed(2) + 's').join('  \u00b7  ');
+  if (!session.started) return entered + ' \u00b7 starts in ' + Math.max(1, Math.ceil(session.starts_in)) + 's';
+  return board || entered + ' \u00b7 started, nobody has finished';
+}
+function onlineRaceShow() {
+  const row = document.getElementById('online-race-row');
+  if (!row) return;
+  const inRace = !!(online.token && online.joined && online.racing);
+  row.hidden = !inRace;
+  if (!inRace) { raceSession = null; return; }
+  document.getElementById('online-race').textContent = onlineRaceText();
+  const entered = !!raceSession && raceSession.entrants.some((e) => e.name === online.name);
+  document.getElementById('online-race-enter').hidden = entered;
+  document.getElementById('online-race-done').hidden = !entered || !(raceSession && raceSession.started);
+}
+async function onlineRaceCall(action, seconds) {
+  const body = { action };
+  if (seconds !== undefined) body.seconds = seconds;
+  return onlineJson(onlineQuery('online/race', { world: online.key }), body);
+}
+async function onlineRaceTick() {
+  if (!online.token || !online.joined || !online.racing) { onlineRaceShow(); return; }
+  try {
+    raceSession = await onlineRaceCall('state');
+  } catch (error) {
+    raceSession = null;
+  }
+  onlineRaceShow();
+}
+document.getElementById('online-race-enter').addEventListener('click', async () => {
+  try {
+    raceSession = await onlineRaceCall('join');
+    onlineRaceShow();
+  } catch (error) { onlineSay(error.message, true); }
+});
+document.getElementById('online-race-done').addEventListener('click', async () => {
+  if (!raceSession) return;
+  // The session's start is the server's clock, so the time is measured against it, not the page's.
+  const seconds = Math.round((Date.now() / 1000 - raceSession.start) * 100) / 100;
+  try {
+    raceSession = await onlineRaceCall('finish', seconds);
+    onlineRaceShow();
+  } catch (error) { onlineSay(error.message, true); }
+});
+setInterval(onlineRaceTick, 2000);
+function onlineRender() {
+  const signed = !!online.token;
+  document.getElementById('online-signin').hidden = signed;
+  document.getElementById('online-signed').hidden = !signed;
+  document.getElementById('online-who').textContent = online.name ? 'Signed in as ' + online.name : '';
+  document.getElementById('online-dev-mode').textContent = 'Dev mode: ' + (online.devMode ? 'ON' : 'OFF');
+  document.getElementById('online-drive').hidden = online.joined;
+  document.getElementById('online-leave').hidden = !online.joined;
+  const others = online.players.length;
+  // The spectator count includes this page when it is watching.
+  const watching = Math.max(0, online.spectators - (online.watching ? 1 : 0));
+  const where = online.label ? online.label + ': ' : '';
+  const cars = online.racing ? ' \u00b7 cars are drawn in town and on the road' : '';
+  // Other places with people in them, so a stranger can see where the world is busy.
+  const elsewhere = Object.entries(online.worlds || {}).filter(([key]) => key !== online.key)
+    .reduce((total, [, place]) => total + (place.players || 0), 0);
+  const far = elsewhere ? ' \u00b7 ' + elsewhere + ' elsewhere' : '';
+  document.getElementById('online-counts').textContent = !online.joined ? 'Not in the world yet'
+    : where + (others ? others + (others === 1 ? ' other driver' : ' other drivers') + (watching ? ' and ' + watching + ' watching' : '')
+    : watching ? watching + ' watching' : 'Nobody else here yet') + cars + far;
+  const current = online.joined ? localPose() : null;
+  document.getElementById('online-roster').replaceChildren(...online.players.map((player) => {
+    const item = document.createElement('li');
+    let text = player.name;
+    if (current) text += ' \u2014 ' + Math.round(Math.hypot(player.x - current[0], player.z - current[2])) + ' m';
+    item.textContent = text;
+    return item;
+  }));
+  onlineButton.textContent = signed && online.joined ? 'Online \u25cf' : 'Online';
+  onlineButton.classList.toggle('on', !!(signed && online.joined));
+  const summary =  document.getElementById('online-profile-summary');
+  summary.textContent = online.profile ? online.profile.country + ' · ' + (online.profile.coins || 0) + ' Coins' : 'Online profile loads when you start Online Adventure.';
+  renderOnlineAdventureHud();
+  if (window.registryCard) window.registryCard.refresh();
+}
+async function onlineSignIn(create) {
+  const name = document.getElementById('online-name').value.trim();
+  const password = document.getElementById('online-pass').value;
+  if (!name || !password) { onlineSay('A name and a password, please.', true); return; }
+  onlineSay(create ? 'Creating your account\u2026' : 'Signing in\u2026');
+  try {
+    const data = await onlineJson('online/' + (create ? 'signup' : 'login'), { name, password });
+    online.token = data.token;
+    online.name = data.name;
+    onlineSessionReady = true;
+    try { localStorage.setItem(ONLINE_KEY, JSON.stringify({ token: data.token, name: data.name })); } catch (e) {}
+    document.getElementById('online-pass').value = '';
+    onlineRender();
+    onlineSay('Signed in as ' + data.name + '.');
+    if (online.launchRequested) prepareOnlineAdventure();
+  } catch (error) {
+    onlineSay(error.message, true);
+  }
+}
+async function onlineSignOut(expired) {
+  const token = online.token;
+  onlineLeave();
+  online.launchStarting = false;
+  if (Module._ps2web_deactivate_online_adventure) Module._ps2web_deactivate_online_adventure();
+  online.token = '';
+  online.name = '';
+  try { localStorage.removeItem(ONLINE_KEY); } catch (e) {}
+  if (token && !expired) fetch('online/logout?token=' + encodeURIComponent(token), { method: 'POST' }).catch(() => {});
+  onlineSay(expired ? 'Your session expired. Sign in again.' : 'Signed out.', !!expired);
+  onlineRender();
+}
+async function onlineCardDownload(quiet) {
+  if (Module.running) { onlineSay('Reload the page first: the game has the card open.', true); return false; }
+  if (!quiet && !confirm('Importing replaces this device’s entire PS2 memory card, including Offline Adventure saves. Continue?')) return false;
+  try {
+    const response = await fetch(onlineQuery('online/card'), { cache: 'no-store' });
+    if (response.status === 404) {
+      if (!quiet) onlineSay('Your account has no cloud save yet.', true);
+      return false;
+    }
+    if (!response.ok) throw new Error('The server answered ' + response.status + '.');
+    const data = new Uint8Array(await response.arrayBuffer());
+    if (data.length !== CARD_BYTES) throw new Error('That is not a memory card.');
+    FS.writeFile(CARD_FILE, data);
+    storeCard();
+    if (!quiet) onlineSay('Cloud save loaded into slot 1.');
+    note('Cloud save loaded');
+    return true;
+  } catch (error) {
+    if (!quiet) onlineSay('Cloud save: ' + error.message, true);
+    return false;
+  }
+}
+async function onlineCardUpload(quiet) {
+  if (!online.token) { if (!quiet) onlineSay('Sign in first.', true); return; }
+  let data = null;
+  try { data = FS.readFile(CARD_FILE); } catch (e) {}
+  if (!data || data.length !== CARD_BYTES) { if (!quiet) onlineSay('Nothing on the memory card to save yet.', true); return; }
+  try {
+    const response = await fetch(onlineQuery('online/card'), { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: data });
+    let result = {};
+    try { result = await response.json(); } catch (e) {}
+    if (!response.ok) throw new Error(result.error || 'The server answered ' + response.status + '.');
+    if (!quiet) onlineSay('Your progress is saved to your account.');
+    note('Cloud save updated');
+  } catch (error) {
+    if (!quiet) onlineSay('Cloud save: ' + error.message, true);
+  }
+}
+// PS2 saves remain local. Cloud-card transfer is explicit because it replaces or uploads the
+// entire memory card, which may contain Offline Adventure progress.
+function onlineCardSaved() {
+  // Local persistence is handled by storeCard(); Online Adventure progress lives in the profile API.
+}
+// The campaign itself is authored content (stories/online-adventure.json, served at
+// /online/story): chapters, contacts, objectives and rewards live in the pack, not in this page.
+// Editing the pack and refreshing shows the new story without rebuilding anything.
+async function loadOnlineStory() {
+  try {
+    // With the session's token, so the pack comes back with this account's objective progress;
+    // without it the server can only send the authored chapters, and no contact gets installed.
+    const response = await fetch(onlineQuery('online/story'), { cache: 'no-store' });
+    if (!response.ok) return;
+    const data = await response.json();
+    online.story = data;
+    online.storyState = data.state || null;
+    questGiverSync();
+    renderOnlineAdventureHud();
+  } catch (error) {}
+}
+// The cast: the pack names a place and, for each character, a range of that town's street NPCs;
+// the host points those roster entries at speakers we wrote into guest RAM, so several of the NPCs
+// the player can bump are our people, talking in the game's own window (host/web.cpp,
+// ps2web_roadtrip_cast). The page installs only what the pack asks for, only while the car is in
+// that town, and puts the game's own entries back when the chapter moves on or the player leaves.
+const QUEST_LINE = 0x140, QUEST_NAME = 0x40, QUEST_LINES = 3;
+function questChapter() {
+  const pack = online.story, state = online.storyState;
+  if (!pack || !state || !Array.isArray(pack.chapters)) return null;
+  return pack.chapters.find((c) => c.number === state.chapter) || null;
+}
+function questTalkTarget() {
+  const chapter = questChapter(), state = online.storyState;
+  if (!chapter || !state) return null;
+  const open = new Set((state.objectives || []).filter((o) => !o.done).map((o) => o.id));
+  return (chapter.objectives || []).find((o) => o.kind === 'talk' && open.has(o.id)) || null;
+}
+// The chapter's cast: the town's street NPCs it replaces, each with its own name and lines. The pack
+// authors them under `cast`; an objective of kind talk names one with `npc`, so the chapter can have
+// several people in it and still know which conversation completes what.
+function questCast(chapter) {
+  const members = [];
+  const seen = new Set();
+  const candidates = (chapter && online.key === chapter.place ? chapter.cast || [] : []).slice();
+  const sideQuests = online.story && Array.isArray(online.story.side_quests) ? online.story.side_quests : [];
+  const sideStates = online.storyState && Array.isArray(online.storyState.side_quests)
+    ? online.storyState.side_quests : [];
+  for (const quest of sideQuests) {
+    const state = sideStates.find((item) => item.id === quest.id);
+    if (state && state.unlocked && !state.complete && quest.place === online.key)
+      candidates.push(...(quest.cast || []));
+  }
+  for (const who of candidates) {
+    if (!who || !who.marker || !questText(who.npc)) continue;
+    const key = who.npc + ':' + who.marker.first + '-' + who.marker.last;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    members.push(who);
+  }
+  return members;
+}
+// The chapter's place as a world key and a location number: "town:1" -> town:1, 1.
+function questPlace(chapter) {
+  const [kind, index] = String((chapter && chapter.place) || '').split(':');
+  const location = Number(index);
+  if (!kind || !Number.isFinite(location)) return null;
+  return { key: kind + ':' + location, location };
+}
+// The game's font is the game's; keep to what it already prints, so a curly quote cannot become a
+// block of garbage in the window.
+function questText(text) {
+  return String(text || '').replace(/[^\x20-\x7E\n]/g, '');
+}
+function questWrite(base, offset, size, text) {
+  const bytes = new TextEncoder().encode(questText(text));
+  if (!bytes.length || bytes.length >= size) return false;
+  Module.HEAPU8.set(bytes, Module._ps2web_roadtrip_ram() + base + offset);
+  Module.HEAPU8[Module._ps2web_roadtrip_ram() + base + offset + bytes.length] = 0;
+  return true;
+}
+// Installs the chapter's whole cast into one town: each member replaces its own range of that
+// town's street NPCs, so several of the people the player can bump are ours at once, each saying
+// its own lines. Nothing is written to a roster until that member's strings are in place.
+function questCastInstall(location, members) {
+  if (!Module || !Module.running || typeof Module._ps2web_roadtrip_cast !== 'function') return false;
+  if (!Module._ps2web_roadtrip_cast(1, location, 0, 0)) return false;
+  let added = 0;
+  for (const member of members) {
+    const lines = (member.say || []).slice(0, QUEST_LINES).filter((line) => questText(line).trim());
+    if (!lines.length) continue;
+    const base = Module._ps2web_roadtrip_cast(2, location, member.marker.first, member.marker.last);
+    if (!base) continue;
+    if (!questWrite(base, 0, QUEST_NAME, member.npc)) continue;
+    let written = true;
+    for (let i = 0; i < lines.length && written; ++i)
+      written = questWrite(base, QUEST_NAME + i * QUEST_LINE, QUEST_LINE, lines[i]);
+    if (!written) continue;
+    if (Module._ps2web_roadtrip_cast_commit(added + 1, lines.length) !== 1) continue;
+    ++added;
+  }
+  return added > 0;
+}
+function questGiverClear() {
+  if (!Module || typeof Module._ps2web_roadtrip_cast !== 'function') return;
+  Module._ps2web_roadtrip_cast(0, 0, 0, 0);
+}
+function questGiverTalking() {
+  return !!(Module && typeof Module._ps2web_roadtrip_npc_talking === 'function'
+    && Module._ps2web_roadtrip_npc_talking() === 1);
+}
+// Which of our characters the open window belongs to, 1-based, or 0 for the game's own speaker.
+function questGiverTalkingMember() {
+  return Module && typeof Module._ps2web_roadtrip_npc_talking_member === 'function'
+    ? Module._ps2web_roadtrip_npc_talking_member() : 0;
+}
+function questGiverSync() {
+  const chapter = online.adventureMode && online.joined ? questChapter() : null;
+  let place = questPlace(chapter);
+  if (!place || online.key !== place.key) {
+    const sideQuests = online.story && Array.isArray(online.story.side_quests) ? online.story.side_quests : [];
+    const sideStates = online.storyState && Array.isArray(online.storyState.side_quests)
+      ? online.storyState.side_quests : [];
+    const sideQuest = sideQuests.find((quest) => {
+      const state = sideStates.find((item) => item.id === quest.id);
+      return state && state.unlocked && !state.complete && quest.place === online.key;
+    });
+    place = sideQuest ? questPlace(sideQuest) : null;
+  }
+  const members = place ? questCast(chapter) : [];
+  // A cast lives in one town and is written into that town's roster, so it is only installed while
+  // the car is actually there: another town's roster is the game's until the player drives in.
+  const wanted = place && members.length && online.key === place.key ? { place, members } : null;
+  const key = wanted ? wanted.place.key + '|' + wanted.members.map((m) => m.npc + ':' + m.marker.first + '-' + m.marker.last).join(',') : '';
+  if (key === online.quest.key) return;
+  // Never pull a speaker out from under a conversation that is being read.
+  if (questGiverTalking()) return;
+  online.quest.key = key;
+  online.quest.installed = wanted ? questCastInstall(wanted.place.location, wanted.members) : (questGiverClear(), false);
+  online.quest.members = wanted ? wanted.members : [];
+  renderOnlineAdventureHud();
+}
+function onlineReportTalk() {
+  const target = questTalkTarget();
+  if (!online.token) return;
+  // The name comes from the member the game is actually showing, not from the objective: a chapter
+  // can have several people in it and the server is told who the player really met.
+  const member = online.quest.members[questGiverTalkingMember() - 1];
+  if (!member) return;
+  onlineJson(onlineQuery('online/talk'), { world: online.key, npc: member.npc || '' })
+    .then(() => loadOnlineStory())
+    .catch(() => {});
+}
+// Called from the pose tick: the host knows whether the open message window belongs to one of our
+// speakers, so the page cannot claim a conversation the game never showed.
+function questGiverPoke() {
+  if (!online.adventureMode || !online.joined) return;
+  questGiverSync();
+  if (!online.quest.installed) return;
+  const talking = questGiverTalking();
+  if (talking && !online.quest.talking) { online.quest.talking = true; onlineReportTalk(); }
+  else if (!talking) online.quest.talking = false;
+}
+function onlineJoin() {
+  if (!online.token) { onlineSay('Sign in first.', true); return; }
+  loadOnlineStory();
+  online.joined = true;
+  online.watching = document.getElementById('online-watch').checked;
+  if (!document.body.classList.contains('mmo')) { document.body.classList.add('mmo'); online.addedMmo = true; }
+  clearInterval(online.timer);
+  online.timer = setInterval(onlineSendPose, 100);
+  onlineNotePlace();
+  onlineConnect();
+  onlineSay(online.watching ? 'Watching the world. Other players can see the world, not your car.'
+    : online.key ? 'In ' + online.label + '. Your car is shared with everyone here.'
+    : 'In the world. Your car is shared wherever you drive; open a game and drive into a town.');
+  onlineRender();
+  if (online.adventureMode) refreshOnlineMission();
+}
+function onlineLeave() {
+  if (!online.joined) return;
+  online.joined = false;
+  // Out of the world now rather than after the idle timeout, and no longer a spectator, so
+  // the next Drive is a car again.
+  if (online.token) fetch(onlineQuery('online/leave'), { method: 'POST' }).catch(() => {});
+  clearInterval(online.timer);
+  online.timer = 0;
+  clearTimeout(online.socketTimer);
+  online.socketTimer = 0;
+  online.socketWorld = '';
+  const socket = online.socket;
+  online.socket = null;
+  if (socket) {
+    try { socket.send(JSON.stringify({ t: 'leave' })); } catch (e) {}
+    try { socket.close(); } catch (e) {}
+  }
+  if (online.addedMmo) { document.body.classList.remove('mmo'); online.addedMmo = false; }
+  onlineForgetCars();
+  // Leaving Online Adventure leaves the game as it was: the contact's roster entry goes back.
+  questGiverClear();
+  online.quest.key = '';
+  online.quest.installed = false;
+  online.key = '';
+  online.label = '';
+  online.racing = false;
+  onlineSay('Left the world.');
+  onlineRender();
+}
+// Ten car updates a second, but only while this page is drawing the world the car is in: a
+// menu, a shop or the title shares nothing, and the world drops a silent car after 6 s.
+function onlineSendPose() {
+  if (!online.joined || online.watching || !online.token || !Module.running) return;
+  onlineConnect();
+  // Menus, shops and the title share nothing, and a pose only goes to the place the car is in, so
+  // it can never land in another town's world.
+  if (!onlineNotePlace()) { onlineSocketLeave(); return; }
+  const pose = localPose();
+  if (!pose) return;
+  onlineSocketJoin();
+  if (Date.now() - (online.quest.checked || 0) > 250) {
+    online.quest.checked = Date.now();
+    questGiverPoke();
+  }
+  const socket = online.socket;
+  if (socket && socket.readyState === 1) {
+    socket.send(JSON.stringify({ t: 'pose', x: pose[0], y: pose[1], z: pose[2], h: pose[3] }));
+    return;
+  }
+  fetch(onlineQuery('online/pose', { world: online.key, label: online.label }), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pose: { x: pose[0], y: pose[1], z: pose[2], h: pose[3] } }),
+  }).catch(() => {});
+}
+async function onlinePollLoop() {
+  if (online.polling) return;
+  online.polling = true;
+  while (online.joined && online.token) {
+    onlineNotePlace();
+    // No place to be in yet (a menu, the title): wait for the car without leaving the world.
+    if (!online.key) { await sleep(400); continue; }
+    const watching = online.watching;
+    let data = null;
+    try {
+      const response = await fetch(onlineQuery('online/world', { world: online.key, watch: watching ? '1' : '0' }), { cache: 'no-store' });
+      if (response.status === 401) { onlineSignOut(true); break; }
+      if (!response.ok) throw new Error('status ' + response.status);
+      data = await response.json();
+    } catch (error) {
+      await sleep(1000);
+      continue;
+    }
+    if (!online.joined) break;
+    onlineApplyWorld(data);
+  }
+  online.polling = false;
+}
+function onlineApplyWorld(data) {
+  // A long poll answers for the place it was asked about; by the time it lands the car may have
+  // driven on to the next town or into a race, and the cars of the old place must not appear here.
+  if (!data || data.world !== online.key) return;
+  const seen = new Set();
+  for (const player of Array.isArray(data.players) ? data.players : []) {
+    if (player.name === online.name) continue;
+    seen.add(player.name);
+    publishPose('o:' + player.name, JSON.stringify({ t: 'p', q: [player.x, player.y, player.z, player.h] }));
+  }
+  for (const id of [...(Module.remoteRoadTripPoses ? Module.remoteRoadTripPoses.keys() : [])]) {
+    if (id.indexOf('o:') === 0 && !seen.has(id.slice(2))) clearRemotePose(id);
+  }
+  online.players = (Array.isArray(data.players) ? data.players : []).filter((player) => player.name !== online.name);
+  online.spectators = data.spectators || 0;
+  onlineRender();
+}
+onlineButton.addEventListener('click', () => {
+  onlinePanel.hidden = !onlinePanel.hidden;
+  if (!onlinePanel.hidden) {
+    onlineRender();
+    const socket = online.socket;
+    if (socket && socket.readyState === 1) socket.send(JSON.stringify({ t: 'worlds' }));
+  }
+});
+document.getElementById('online-close').addEventListener('click', () => { onlinePanel.hidden = true; });
+document.getElementById('online-login').addEventListener('click', () => onlineSignIn(false));
+document.getElementById('online-signup').addEventListener('click', () => onlineSignIn(true));
+document.getElementById('online-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') onlineSignIn(false); });
+document.getElementById('online-logout').addEventListener('click', () => onlineSignOut(false));
+document.getElementById('online-dev-mode').addEventListener('click', () => {
+  online.devMode = !online.devMode;
+  try { localStorage.setItem('roadtrip-online-dev-mode', online.devMode ? '1' : '0'); } catch (e) {}
+  if (Module._ps2web_online_dev_mode) Module._ps2web_online_dev_mode(online.devMode ? 1 : 0);
+  onlineRender();
+});
+document.getElementById('online-drive').addEventListener('click', onlineJoin);
+document.getElementById('online-leave').addEventListener('click', onlineLeave);
+document.getElementById('online-watch').addEventListener('change', () => {
+  if (!online.joined) return;
+  onlineLeave();
+  onlineJoin();
+});
+document.getElementById('online-download').addEventListener('click', () => onlineCardDownload(false));
+document.getElementById('online-upload').addEventListener('click', () => onlineCardUpload(false));
+window.addEventListener('pagehide', () => {
+  online.joined = false;
+  clearInterval(online.timer);
+  const socket = online.socket;
+  if (!socket) return;
+  try { socket.send(JSON.stringify({ t: 'leave' })); } catch (e) {}
+  try { socket.close(); } catch (e) {}
+});
+// A session kept in this browser signs in again on load, so progress and the world are one click away.
+let onlineStored = null;
+try { onlineStored = JSON.parse(localStorage.getItem(ONLINE_KEY) || 'null'); } catch (e) {}
+if (onlineStored && onlineStored.token) {
+  onlineSessionReady = false;
+  online.token = onlineStored.token;
+  online.name = onlineStored.name || '';
+  onlineJson(onlineQuery('online/me'))
+    .then((data) => {
+      onlineSessionReady = true;
+      online.name = data.name;
+      onlineRender();
+      if (online.launchRequested) prepareOnlineAdventure();
+    })
+    .catch(() => {
+      onlineSessionReady = true;
+      online.token = ''; online.name = '';
+      if (Module._ps2web_deactivate_online_adventure) Module._ps2web_deactivate_online_adventure();
+      try { localStorage.removeItem(ONLINE_KEY); } catch (e) {}
+      onlineRender();
+    });
+}
+onlineRender();
 function inviteLink() {
   const url = new URL(location.href);
-  url.search = '?join=' + room;
+  url.searchParams.set('join', room);
+  if (roomMode === 'independent') url.searchParams.set('mode', 'independent');
+  else url.searchParams.delete('mode');
   return url.href;
 }
 function copyInvite() {
@@ -770,53 +2053,85 @@ function streamTrack() {
   streamShape = aspect === '16:9' ? 16 / 9 : 4 / 3;
   return generator;
 }
-inviteButton.addEventListener('click', async () => {
+async function makeRoom(independent) {
   if (room) {
+    if ((roomMode === 'independent') !== independent) {
+      note('This page already has a ' + roomMode + ' room. Reload to create a different room type.');
+      return;
+    }
     copyInvite();
     return;
   }
-  inviteButton.disabled = true;
+  inviteButton.disabled = mmoInviteButton.disabled = true;
   try {
     const r = await fetch('room', { method: 'POST' });
     if (!r.ok) throw new Error('This server cannot make rooms. Serve the page with scripts/serve.py.');
     room = (await r.json()).room;
-    const sound = audio.createMediaStreamDestination();
-    node.connect(sound);
-    hostStream = new MediaStream([streamTrack(), ...sound.stream.getAudioTracks()]);
-    inviteButton.textContent = 'Room ' + room;
-    inviteButton.title = 'Copy the invite link again';
+    roomMode = independent ? 'independent' : 'shared';
+    if (independent) document.body.classList.add('mmo');
+    if (!independent) {
+      const sound = audio.createMediaStreamDestination();
+      node.connect(sound);
+      hostStream = new MediaStream([streamTrack(), ...sound.stream.getAudioTracks()]);
+    }
+    const label = (independent ? 'MMO ' : '') + 'Room ' + room;
+    inviteButton.textContent = label;
+    mmoInviteButton.textContent = label;
+    inviteButton.title = mmoInviteButton.title = 'Copy the room link again';
     copyInvite();
     hostRoom(room);
   } catch (error) {
     room = null;
     note(error.message);
   }
-  inviteButton.disabled = false;
-});
+  inviteButton.disabled = mmoInviteButton.disabled = false;
+}
+inviteButton.addEventListener('click', () => makeRoom(false));
+mmoInviteButton.addEventListener('click', () => makeRoom(true));
 async function hostRoom(code) {
   const guests = new Map();
   for await (const m of roomMessages(code, 'host')) {
-    if (m.type === 'join' && typeof m.from === 'string' && !guests.has(m.from)) acceptGuest(code, m.from, guests).catch((e) => console.warn('[room] ' + e));
+    if (m.type === 'join' && typeof m.from === 'string' && !guests.has(m.from)) {
+      const independent = roomMode === 'independent';
+      if ((m.mode === 'independent') !== independent) {
+        roomSend(code, m.from, { type: 'room-mode-mismatch', mode: roomMode }).catch((e) => console.warn('[room] ' + e));
+        continue;
+      }
+      acceptGuest(code, m.from, guests, independent).catch((e) => console.warn('[room] ' + e));
+    }
     else if (m.type === 'answer' && guests.has(m.from)) guests.get(m.from).setRemoteDescription({ type: 'answer', sdp: m.sdp }).catch((e) => console.warn('[room] ' + e));
   }
   note('Room ' + code + ' has closed.');
 }
-async function acceptGuest(code, id, guests) {
+async function acceptGuest(code, id, guests, independent = false) {
   const pc = new RTCPeerConnection(rtcConfig);
   guests.set(id, pc);
-  for (const track of hostStream.getTracks()) pc.addTrack(track, hostStream);
-  const channel = pc.createDataChannel('pad', { ordered: false, maxRetransmits: 0 });
+  if (!independent) for (const track of hostStream.getTracks()) pc.addTrack(track, hostStream);
+  const channel = pc.createDataChannel(independent ? 'pose' : 'pad', { ordered: false, maxRetransmits: 0 });
+  let poseTimer = 0;
   const leave = () => {
     guests.delete(id);
     guestLeaves.delete(id);
+    clearInterval(poseTimer);
+    clearRemotePose(id);
     pc.close();
     releaseRemote(id);
   };
   guestLeaves.set(id, leave);
-  channel.onmessage = (e) => remoteInput(id, e.data);
+  channel.onmessage = (e) => independent ? publishPose(id, e.data) : remoteInput(id, e.data);
   channel.onclose = leave;
+  if (independent) {
+    const sendPose = () => {
+      if (channel.readyState !== 'open') return;
+      const pose = localPose();
+      if (pose) channel.send(JSON.stringify({ t: 'p', q: pose }));
+    };
+    poseTimer = setInterval(sendPose, 50);
+    channel.addEventListener('close', () => clearInterval(poseTimer), { once: true });
+    channel.addEventListener('open', sendPose, { once: true });
+  }
   pc.addEventListener('connectionstatechange', () => {
-    if (pc.connectionState === 'connected') {
+    if (pc.connectionState === 'connected' && !independent) {
       for (const sender of pc.getSenders()) {
         if (!sender.track || sender.track.kind !== 'video') continue;
         const parameters = sender.getParameters();
@@ -911,8 +2226,9 @@ async function startGuest() {
   const pc = new RTCPeerConnection(rtcConfig);
   let channel = null;
   const sent = { b: 0, lx: 128, ly: 128, rx: 128, ry: 128, p: [-1, -1, -1, -1] };
-  Object.assign(Module, {
+  if (!independentGuest) Object.assign(Module, {
     _ps2web_pad_connected: () => {},
+    _ps2web_take_online_adventure: () => 0,
     _ps2web_pad: (port, b, lx, ly, rx, ry) => Object.assign(sent, { b, lx, ly, rx, ry }),
     _ps2web_pressure: (port, a, b, c, d) => { sent.p = [a, b, c, d]; },
     _ps2web_rumble: () => 0,
@@ -940,22 +2256,45 @@ async function startGuest() {
     window.addEventListener('pointerdown', unmute, true);
     window.addEventListener('keydown', unmute, true);
   };
-  pc.ondatachannel = (e) => { channel = e.channel; };
+  pc.ondatachannel = (e) => {
+    channel = e.channel;
+    if (independentGuest) channel.onmessage = (event) => publishPose('host', event.data);
+  };
   pc.addEventListener('connectionstatechange', () => {
-    if (pc.connectionState === 'connected') statusEl.textContent = 'Playing as player 2 in room ' + guestRoom;
+    if (pc.connectionState === 'connected') statusEl.textContent = independentGuest ? 'Connected to independent room ' + guestRoom : 'Playing as player 2 in room ' + guestRoom;
     else if (pc.connectionState === 'failed') statusEl.textContent = 'Could not reach the host. Your networks may need a relay (TURN) server between them.';
     else if (pc.connectionState === 'closed' || pc.connectionState === 'disconnected') statusEl.textContent = 'Lost the host.';
   });
+  let running = true;
   const send = () => {
-    pollPlayer(0, orderedPads()[0] || null, true);
-    if (channel && channel.readyState === 'open') channel.send(JSON.stringify(sent));
-    requestAnimationFrame(send);
+    if (!running) return;
+    if (independentGuest) {
+      const pose = localPose();
+      if (pose && channel && channel.readyState === 'open') channel.send(JSON.stringify({ t: 'p', q: pose }));
+    } else {
+      pollPlayer(0, orderedPads()[0] || null, true);
+      if (channel && channel.readyState === 'open') channel.send(JSON.stringify(sent));
+      requestAnimationFrame(send);
+    }
   };
-  requestAnimationFrame(send);
+  const poseTimer = independentGuest ? setInterval(send, 50) : 0;
+  if (!independentGuest) requestAnimationFrame(send);
+  pc.addEventListener('connectionstatechange', () => {
+    if (pc.connectionState === 'closed' || pc.connectionState === 'failed') {
+      running = false;
+      clearInterval(poseTimer);
+    }
+    if (independentGuest && (pc.connectionState === 'closed' || pc.connectionState === 'failed' || pc.connectionState === 'disconnected')) clearRemotePose('host');
+  });
   try {
     const messages = roomMessages(guestRoom, id);
-    await roomSend(guestRoom, 'host', { type: 'join', from: id });
+    await roomSend(guestRoom, 'host', { type: 'join', from: id, mode: independentGuest ? 'independent' : 'shared' });
     for await (const m of messages) {
+      if (m.type === 'room-mode-mismatch') {
+        statusEl.textContent = 'This link is for a different room mode (' + m.mode + '). Ask the host for the matching link.';
+        pc.close();
+        return;
+      }
       if (m.type !== 'offer') continue;
       if (m.shape > 0) guestShape = m.shape;
       document.body.classList.toggle('wide', guestShape > 1.5);
@@ -1096,10 +2435,11 @@ var Module = {
     statusEl.textContent = progress ? 'Downloading game data, ' + (Number(progress[1]) / 1048576).toFixed(1) + ' MB unpacked' : text;
   },
   onRuntimeInitialized: () => {
+    if (Module._ps2web_online_dev_mode) Module._ps2web_online_dev_mode(online.devMode ? 1 : 0);
     const start = document.getElementById('start');
     if (missing.length) return;
     start.disabled = false;
-    start.textContent = 'Start';
+    start.textContent = independentGuest ? 'Start independent game' : 'Start';
   },
   preRun: [() => {
     if (!Module.noCard) {
@@ -1131,9 +2471,13 @@ var Module = {
     });
   }],
   audioQueuedMs: () => Module._ps2web_audio_queued_ms(),
-  ps2CardSaved: () => storeCard(),
+  ps2CardSaved: () => { storeCard(); onlineCardSaved(); },
   onFrame: () => {
     pollInput();
+    if (Module._ps2web_take_online_adventure && Module._ps2web_take_online_adventure()) {
+      online.launchRequested = true;
+      startOnlinePrologue();
+    }
     ++frames;
     fresh = true;
     const now = performance.now();
@@ -1161,6 +2505,8 @@ var Module = {
   noInitialRun: true,
 };
 
+requestAnimationFrame(drawPoseRadar);
+requestAnimationFrame(placeRemoteCars);
 updateControls();
 if (missing.length) {
   const help = document.getElementById('help');
@@ -1171,32 +2517,97 @@ if (missing.length) {
 
 if (guestRoom) {
   const start = document.getElementById('start');
-  start.disabled = false;
-  start.textContent = 'Join room ' + guestRoom;
-  statusEl.textContent = 'Invited to room ' + guestRoom;
+  start.disabled = independentGuest;
+  start.textContent = independentGuest ? 'Loading independent game…' : 'Join room ' + guestRoom;
+  statusEl.textContent = independentGuest ? 'Preparing independent room ' + guestRoom : 'Invited to room ' + guestRoom;
 }
 
 document.getElementById('start').addEventListener('click', async () => {
   document.getElementById('overlay').remove();
-  if (guestRoom) {
+  if (guestRoom && !independentGuest) {
     startGuest();
     return;
   }
   canvas.focus();
   fitCanvas();
   await startAudio();
-  statusEl.textContent = 'Running, ' + Module.gpuInfo;
+  statusEl.textContent = independentGuest ? 'Starting independent game…' : 'Running, ' + Module.gpuInfo;
   Module.running = true;
   setStateBusy(false);
-  inviteButton.disabled = false;
+  inviteButton.disabled = mmoInviteButton.disabled = !!guestRoom;
+  if (independentGuest) startGuest();
   Module.callMain(Module.arguments);
 });
 
-if (!guestRoom) {
+// An Online Adventure start reloads with ?online=1 and the server's start state, so the page joins
+// the shared world as soon as the car is in a driveable place instead of waiting for a menu choice.
+{
+  let bootOnline = false;
+  try { bootOnline = new URLSearchParams(location.search).get('online') === '1'; } catch (e) {}
+  if (bootOnline && online.token) {
+    online.adventureMode = true;
+    const enterWorld = () => {
+      if (!Module.running) { setTimeout(enterWorld, 250); return; }
+      waitForOnlineWorld();
+    };
+    enterWorld();
+  }
+}
+
+if (!guestRoom || independentGuest) {
   const engine = document.createElement('script');
   engine.src = document.getElementById('engine').content.querySelector('script').getAttribute('src');
   engine.async = true;
   document.body.appendChild(engine);
+}
+// Our online text, drawn in the game's own font over the game's own frame (web/font-board.js).
+if (!guestRoom || independentGuest) {
+  const board = document.createElement('script');
+  board.src = 'font-board.js';
+  board.async = true;
+  document.body.appendChild(board);
+}
+// The new system menu: our screens in the game's palette and the game's window type, opened on
+// Enter (the pad's Start) where the game's own pause menu used to be (web/menu.js). The pages it
+// replaces read the game's own save and location table, so the data module is loaded first.
+if (!guestRoom || independentGuest) {
+  const pageData = document.createElement('script');
+  pageData.src = 'game-data.js';
+  pageData.async = true;
+  pageData.onload = () => {
+    const systemMenu = document.createElement('script');
+    systemMenu.src = 'menu.js';
+    systemMenu.async = true;
+    document.body.appendChild(systemMenu);
+  };
+  document.body.appendChild(pageData);
+}
+// The registry card: the drivers standing in this place, drawn in the game's own letters over the
+// frame. F9 toggles it. It uses only characters the decoded font actually has (see
+// docs/online-ui-font.md): no digits, because the sheet's digit run is clipped, so a distance or a
+// count would be invented rather than read from the game's type.
+{
+  const DRIVERS = 7;
+  let shown = false;
+  function compose() {
+    const lines = ['ROAD REGISTRY'];
+    const place = String(online.label || '').trim();
+    lines.push(place ? place.toUpperCase() : online.key ? 'ON THE ROAD' : 'NOT IN A PLACE');
+    if (!online.joined) { lines.push('SIGN IN TO DRIVE'); return lines; }
+    const others = online.players.slice(0, DRIVERS);
+    if (!others.length) lines.push('NOBODY ELSE HERE');
+    for (const player of others) lines.push(String(player.name || 'DRIVER').toUpperCase().slice(0, 14));
+    if (online.players.length > DRIVERS) lines.push('AND OTHERS');
+    return lines;
+  }
+  function refresh() { if (shown && window.boardFont) window.boardFont.show(compose()); }
+  window.addEventListener('keydown', (event) => {
+    if (event.code !== 'F9' || !window.boardFont) return;
+    event.preventDefault();
+    shown = !shown;
+    if (shown) window.boardFont.show(compose()); else window.boardFont.hide();
+  });
+  window.registryCard = { compose, refresh, get shown() { return shown; } };
 }
 </script>
 </body>

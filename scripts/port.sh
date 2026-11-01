@@ -109,7 +109,12 @@ if windows=$(python3 -I "$here/windows.py" list "$elf") && [ -n "$windows" ]; th
   echo "code windows the game rewrites: $(echo "$windows" | tr '\n' ' ')"
 fi
 
-translate() { "$tools/eerecomp" "$elf" --entries "$game/entries.txt" "${modules[@]}" "${overlays[@]}" --out "$generated" | tail -1; }
+translate() {
+  hooks=()
+  [ -f "$game/hooks.txt" ] && hooks=(--hooks "$game/hooks.txt")
+  "$tools/eerecomp" "$elf" --entries "$game/entries.txt" "${modules[@]}" "${overlays[@]}" "${hooks[@]}" --out "$generated" | tail -1
+  if [ "$name" = roadtrip ]; then python3 -I "$here/patch_online_title.py" "$generated"; fi
+}
 
 echo "== [3/6] machine code to C++"
 touch "$game/entries.txt"

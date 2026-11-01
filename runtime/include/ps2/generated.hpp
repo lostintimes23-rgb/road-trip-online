@@ -48,6 +48,7 @@ void breakpoint(Cpu &c, std::uint32_t pc);
 void trap(Cpu &c, std::uint32_t pc);
 void stop(Cpu &c, std::uint32_t pc, const char *what);
 void probe(Cpu &c, std::uint32_t pc);
+void hook(Cpu &c, std::uint32_t pc);
 
 std::uint32_t mfc0(Cpu &c, std::uint32_t reg, std::uint32_t sel);
 void mtc0(Cpu &c, std::uint32_t reg, std::uint32_t value);

@@ -93,9 +93,28 @@ The page puts a memory card in slot 1 and keeps it in the browser's storage for 
 
 **Invite** makes a room on the server and copies a link to it. A friend who opens the link sees the game and hears it over WebRTC, and their keyboard, gamepad or touch controls become player 2. Their browser downloads neither the game nor the disc, so a phone can join a game a PC is running. The picture they get is the game's own resolution, compressed. Players on networks that cannot reach each other directly would need a TURN relay, which the page does not set up.
 
+**MMO room** makes a room where every player runs their own copy of the game. Each page sends only its car's position and heading, and the game draws the other players itself: at each vblank the town's last four traffic slots are moved onto their poses, so they are real cars with the game's models, paint and shadows (depth-tested against the buildings), plus a radar of who is nearby. They are a drawing only: no collision, not saved, and every player's traffic, story and physics stay their own. Players still have to drive to the same area of the map to see each other.
+
+**Online** (the button in the bar) is the same idea through the server instead of one room: sign up with a name and a password, press **Drive**, and every signed-in player in the **same loaded place** has their car drawn in everyone else's view, with a count of who is there. A place is the town you are in, the stretch of road between towns, or the race you are running (`ps2web_roadtrip_place`, from the game's own location words): Story progress never partitions players; moving to another place routes the car to that scene instead of leaving it behind. A car is only shared while its page is drawing the world the player is driving in, so a menu, a shop or the title shares nothing, and a world forgets a car after six seconds of silence. **Spectate** joins the place without sharing your own car. Cars are drawn in towns and on the road, where the game's traffic slots can be borrowed; a race shares its roster but draws no cars yet. The poses go through `serve.py` (`/online/socket`, a WebSocket that pushes each accepted pose to the other drivers in that place; `/online/pose` and `/online/world` stay as the fallback when a server cannot upgrade), which bounds, rate-limits and checks them against motion no car could make, and takes a car out of its place the moment its page leaves, closes or stops drawing the world; there is still no shared simulation, so traffic, physics and story stay each player's own. While other players' cars are on screen the panel also reports how far the town's traffic AI moved a borrowed car in the last frame: a fraction of a unit means the borrowed slots are quiet, a number near the car's own size would mean the AI is fighting for them.
+
+Accounts keep the memory card: **Cloud save ↑** uploads slot 1 to the account and **Cloud save ↓** puts it back, and every save the game writes goes up on its own a couple of seconds later, so progress follows the account between browsers. An account can be signed in on more than one browser at once, and the last card written wins. Accounts, their cards and the worlds live under `--data` (default: `online` next to the build directory); passwords are kept as salted PBKDF2 hashes and sessions as random tokens in that folder, which is not encrypted, so keep it to yourself.
+
 ## Hosting
 
-The page uses SharedArrayBuffer for its threads, so it has to be served cross-origin isolated, with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`. `scripts/serve.py` sends both headers and supports the Range requests the disc streaming relies on. Anyone who can reach the server can load the game, so keep it to yourself.
+The page uses SharedArrayBuffer for its threads, so it has to be served cross-origin isolated, with `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`. `scripts/serve.py` sends both headers and supports the Range requests the disc streaming relies on. Anyone who can reach the server can load the game and create an account, so keep it to yourself: the online endpoints check bounds and rate limits but there is no moderation, and positions come from the clients.
+
+### Sharing it with a tunnel
+
+The page asks for `wss://` when it is loaded over HTTPS, so a shared session needs TLS and not just a forwarded port. `scripts/share.py` puts a Cloudflare quick tunnel in front of a running `serve.py`:
+
+```sh
+python3 scripts/serve.py <build> <disc>   # leave this running
+python3 scripts/share.py 8620             # in a second terminal
+```
+
+It prints the page URL and the `wss://.../online/socket` URL to hand to the other players. `serve.py` keeps listening on `127.0.0.1`, so the tunnel is the only way in and the game is never exposed on the local network. Ctrl-C stops the tunnel (the wrapper cleans up in a `finally`, so nothing is left listening on the internet), and then you stop the server. A quick tunnel gets a new random hostname on every run, so share the link again rather than bookmarking it.
+
+The URL is a bearer secret: it exposes the build, the disc image the server streams and sign-up. Give it only to people you trust, and see `docs/multiplayer-spike.md` for what a real host would still need.
 
 ## Legal
 

@@ -1,5 +1,6 @@
 #include "gs.hpp"
 
+#include "art-words.hpp"
 #include "gif.hpp"
 #include "queue.hpp"
 #include "raster.hpp"
@@ -13,6 +14,9 @@
 
 #include <algorithm>
 #include <atomic>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 #include <chrono>
 #include <stdexcept>
 #include <string>
@@ -228,6 +232,100 @@ void exact_download() {
 #endif
 }
 
+// How many times a word of ours has been painted into the sheet this session, so a probe can tell
+// the patch ran rather than guessing from the frame; alongside it, what the patch was offered, so a
+// run that paints nothing can say why.
+std::uint32_t g_art_words = 0, g_art_uploads = 0, g_art_4bpp = 0, g_art_last_bp = 0, g_art_last_bw = 0,
+              g_art_near = 0, g_art_near_bp = 0, g_art_near_points = 0, g_art_images = 0;
+
+// The 4bpp textures the last frames drew with, in the order they were first sampled: a probe reads
+// these to ask the game itself which address a screen's art comes from, instead of guessing.
+struct DrawnTex { std::uint32_t bp, bw; };
+std::vector<DrawnTex> g_drawn_tex;
+
+// Our own words, painted into the pause sheet as it reaches the GS. The letters are the sheet's own,
+// copied inside the same texture as pixel indices (scripts/art_words.py composes them), so the
+// typeface and the palette stay the game's and nothing else about the sheet changes.
+//
+// The sheet arrives in strips, so "is this the sheet" is asked of the texture's content — a handful
+// of pixels that must carry ink and a corner of the empty cell that must not — rather than of one
+// upload's size. Every matching upload patches again, so a strip that lands after our word cannot
+// leave it half written.
+// Is this texture the pause sheet? Its signature is a set of pixels that must carry ink and a set
+// that must carry none, spread across the whole sheet, so another 4bpp texture cannot pass by having
+// ink in one busy corner.
+bool is_sheet(std::uint32_t psm, std::uint32_t bp, std::uint32_t bw) {
+    using namespace ::gs::art;
+    const std::uint32_t empty = read_pixel(psm, bp, bw, kEmpty[0], kEmpty[1]);
+    std::uint32_t hits = 0;
+    for (const auto &probe : kProbes)
+        if (read_pixel(psm, bp, bw, probe[0], probe[1]) != empty) ++hits;
+    if (hits > g_art_near_points) {
+        g_art_near_points = hits;
+        g_art_near_bp = bp;
+    }
+    if (hits < sizeof kProbes / sizeof kProbes[0]) return false;
+    for (const auto &blank : kBlanks)
+        if (read_pixel(psm, bp, bw, blank[0], blank[1]) != empty) return false;
+    return true;
+}
+
+void patch_art(std::uint32_t psm, std::uint32_t bp, std::uint32_t bw) {
+    using namespace ::gs::art;
+    ++g_art_uploads;
+    if (psm != kSheetPsm) return;
+    ++g_art_4bpp;
+    g_art_last_bp = bp;
+    g_art_last_bw = bw;
+    if (!is_sheet(psm, bp, bw)) return;
+    for (const Word &word : kWords) {
+        for (std::uint32_t g = word.first; g < word.first + word.count; ++g) {
+            const Glyph &glyph = kGlyphs[g];
+            for (std::uint32_t p = glyph.first; p < glyph.first + glyph.count; ++p) {
+                const std::uint32_t x = glyph.srcX + kPoints[p][0], y = glyph.srcY + kPoints[p][1];
+                write_pixel(psm, bp, bw, glyph.dstX + kPoints[p][0], word.dstY + glyph.dstY + kPoints[p][1],
+                            read_pixel(psm, bp, bw, x, y));
+            }
+        }
+    }
+    ++g_art_words;
+}
+
+// The sheet is only drawn with, not uploaded: a game booted from a saved state already has its
+// textures in GS memory, so the art has to go in when the sheet is first sampled. Every textured
+// 4bpp primitive offers its texture here and the signature decides.
+//
+// Both answers are remembered for a while — a texture that matched is not asked again for thirty
+// frames, and neither is one that did not, so a frame draws many primitives with one texture and only
+// ever pays the signature once in thirty frames. A texture can change under a fixed address, hence
+// the timer rather than a permanent verdict.
+void patch_art_at_draw(std::uint64_t tex0) {
+    using namespace ::gs::art;
+    if (static_cast<std::uint32_t>(tex0 >> 20 & 0x3Fu) != kSheetPsm) return;
+    const std::uint32_t bp = static_cast<std::uint32_t>(tex0 & 0x3FFFu), bw = static_cast<std::uint32_t>(tex0 >> 14 & 0x3Fu);
+    {
+        bool known = false;
+        for (const DrawnTex &t : g_drawn_tex) known = known || (t.bp == bp && t.bw == bw);
+        if (!known) {
+            if (g_drawn_tex.size() >= 128) g_drawn_tex.erase(g_drawn_tex.begin());
+            g_drawn_tex.push_back({bp, bw});
+        }
+    }
+    struct Seen { std::uint32_t bp, bw, frame; };
+    static std::vector<Seen> seen;
+    const std::uint32_t frame = static_cast<std::uint32_t>(frame_count());
+    for (const Seen &s : seen)
+        if (s.bp == bp && s.bw == bw && frame - s.frame < 30) return;
+    if (is_sheet(kSheetPsm, bp, bw)) patch_art(kSheetPsm, bp, bw);
+    if (seen.size() > 64) seen.erase(seen.begin());
+    for (Seen &s : seen)
+        if (s.bp == bp && s.bw == bw) {
+            s.frame = frame;
+            return;
+        }
+    seen.push_back({bp, bw, frame});
+}
+
 void transfer_pixel(std::uint32_t value) {
     const std::uint64_t buf = g_state.bitbltbuf, pos = g_state.trxpos, reg = g_state.trxreg;
     const std::uint32_t dbp = static_cast<std::uint32_t>(buf >> 32) & 0x3FFFu;
@@ -241,7 +339,10 @@ void transfer_pixel(std::uint32_t value) {
     write_pixel(dpsm, dbp, dbw, (dsax + g_transfer.x) & 0x7FFu, (dsay + g_transfer.y) & 0x7FFu, value);
     if (++g_transfer.x >= rrw) {
         g_transfer.x = 0;
-        if (++g_transfer.y >= rrh) g_transfer.active = false;
+        if (++g_transfer.y >= rrh) {
+            g_transfer.active = false;
+            patch_art(dpsm, dbp, dbw);
+        }
     }
 }
 
@@ -666,6 +767,7 @@ void kick(bool draw) {
     const int needed = prim == 0 ? 1 : (prim == 1 || prim == 2 || prim == 6) ? 2 : prim == 7 ? 1 : 3;
     if (s.count < needed) return;
     if (draw) {
+        if (s.prim & 0x04u) patch_art_at_draw(s.ctx[(static_cast<std::uint32_t>(s.prim) >> 9) & 1u].tex0);
         if (cpu_raster()) raster::draw(s, s.queue, needed);
 #ifdef PS2_GPU
         if (gpu_on()) gpu::draw(s, s.queue, needed);
@@ -880,7 +982,10 @@ void write_packed(std::uint32_t reg, const Reg128 &q) {
     }
 }
 
-void write_image(const std::uint8_t *data, std::uint32_t qwords) { feed_image(data, static_cast<std::size_t>(qwords) * 16); }
+void write_image(const std::uint8_t *data, std::uint32_t qwords) {
+    ++g_art_images;
+    feed_image(data, static_cast<std::size_t>(qwords) * 16);
+}
 
 std::atomic<std::uint32_t> g_downloads{0};
 
@@ -1376,3 +1481,54 @@ void state(ps2::state::Stream &s) {
 }
 
 }
+
+// One textured pixel of GS memory, for the menu work (docs/native-pause-rows.md): the pause rows'
+// words are cells of a packed sheet, and composing a word of our own into the sheet's empty cell is
+// a rearrangement of the sheet's own pixels — forgiving no layout assumptions, because `psm`, `bp`
+// and `bw` are the ones the game uploaded with. `write` puts `value` there and returns the old one;
+// read mode leaves memory untouched. The game's own paths never call this.
+#ifdef __EMSCRIPTEN__
+extern "C" EMSCRIPTEN_KEEPALIVE int ps2web_art_words() { return static_cast<int>(ps2::gs::g_art_words); }
+
+// The bp of the i-th 4bpp texture drawn with, and its bw.
+extern "C" EMSCRIPTEN_KEEPALIVE int ps2web_art_tex_bp(int i) {
+    const auto &v = ps2::gs::g_drawn_tex;
+    return i >= 0 && static_cast<std::size_t>(i) < v.size() ? static_cast<int>(v[static_cast<std::size_t>(i)].bp) : -1;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int ps2web_art_tex_bw(int i) {
+    const auto &v = ps2::gs::g_drawn_tex;
+    return i >= 0 && static_cast<std::size_t>(i) < v.size() ? static_cast<int>(v[static_cast<std::size_t>(i)].bw) : -1;
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE void ps2web_art_tex_reset() { ps2::gs::g_drawn_tex.clear(); }
+
+// 0 uploads seen, 1 of them 4bpp, 2 last 4bpp bp, 3 last 4bpp bw, 4 best probe hits, 5 that bp,
+// 6 image packets offered, 7 the renderer (0 off, 1 primary, 2 mirror).
+extern "C" EMSCRIPTEN_KEEPALIVE int ps2web_art_debug(int which) {
+    using namespace ps2::gs;
+    switch (which) {
+    case 0: return static_cast<int>(g_art_uploads);
+    case 1: return static_cast<int>(g_art_4bpp);
+    case 2: return static_cast<int>(g_art_last_bp);
+    case 3: return static_cast<int>(g_art_last_bw);
+    case 4: return static_cast<int>(g_art_near_points);
+    case 5: return static_cast<int>(g_art_near_bp);
+    case 6: return static_cast<int>(g_art_images);
+    case 8: return static_cast<int>(g_drawn_tex.size());
+    case 7: return static_cast<int>(gpu_on() ? (cpu_raster() ? 2 : 1) : 0);
+    default: return -1;
+    }
+}
+
+extern "C" EMSCRIPTEN_KEEPALIVE int ps2web_gs_pixel(int psm, std::uint32_t bp, std::uint32_t bw,
+                                                    int x, int y, std::uint32_t value, int write) {
+    if (x < 0 || y < 0 || x > 1023 || y > 1023) return -1;
+    const std::uint32_t before =
+        ps2::gs::read_pixel(static_cast<std::uint32_t>(psm), bp, bw, static_cast<std::uint32_t>(x), static_cast<std::uint32_t>(y));
+    if (write)
+        ps2::gs::write_pixel(static_cast<std::uint32_t>(psm), bp, bw, static_cast<std::uint32_t>(x),
+                             static_cast<std::uint32_t>(y), value);
+    return static_cast<int>(before);
+}
+#endif

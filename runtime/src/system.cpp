@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <atomic>
+#include <atomic>
 #include <cctype>
 #include <chrono>
 #include <cstdio>
@@ -660,6 +661,19 @@ void set_pad_axis(int axis, std::uint8_t value, int pad) { iop::sio2::set_axis(p
 void set_pad_pressure(int button, std::uint8_t value, int pad) { iop::sio2::set_pressure(pad, button, value); }
 void set_pad_connected(int pad, bool connected) { iop::sio2::set_connected(pad, connected); }
 std::uint16_t pad_rumble(int pad) { return iop::sio2::rumble(pad); }
+namespace {
+std::atomic_bool g_online_adventure_requested{false};
+std::atomic_bool g_online_adventure_active{false};
+}
+void request_online_adventure() {
+    g_online_adventure_requested.store(true, std::memory_order_release);
+}
+void activate_online_adventure() { g_online_adventure_active.store(true, std::memory_order_release); }
+void deactivate_online_adventure() { g_online_adventure_active.store(false, std::memory_order_release); }
+bool take_online_adventure_request() {
+    return g_online_adventure_requested.exchange(false, std::memory_order_acq_rel);
+}
+bool online_adventure_active() { return g_online_adventure_active.load(std::memory_order_acquire); }
 void set_audio_sink(std::function<void(const std::int16_t *, std::size_t)> sink) { iop::spu2::set_sink(std::move(sink)); }
 
 }

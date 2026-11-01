@@ -151,7 +151,7 @@ std::vector<std::pair<std::uint32_t, std::uint32_t>> checks_for_window(const Snr
 }
 
 int usage() {
-    std::fprintf(stderr, "usage: eerecomp <elf> [--entries file] [--modules dir] [--overlays dir] [--probes file] [--out dir] [--stats]\n");
+    std::fprintf(stderr, "usage: eerecomp <elf> [--entries file] [--modules dir] [--overlays dir] [--probes file] [--hooks file] [--out dir] [--stats]\n");
     return 2;
 }
 
@@ -159,7 +159,7 @@ int usage() {
 
 int main(int argc, char **argv) {
     if (argc < 2) return usage();
-    std::string elf_path = argv[1], entries_path, out, probes_path, modules_dir, overlays_dir;
+    std::string elf_path = argv[1], entries_path, out, probes_path, hooks_path, modules_dir, overlays_dir;
     bool stats = false;
     for (int i = 2; i < argc; ++i) {
         const std::string arg = argv[i];
@@ -167,6 +167,7 @@ int main(int argc, char **argv) {
         else if (arg == "--stats") stats = true;
         else if (arg == "--out" && i + 1 < argc) out = argv[++i];
         else if (arg == "--probes" && i + 1 < argc) probes_path = argv[++i];
+        else if (arg == "--hooks" && i + 1 < argc) hooks_path = argv[++i];
         else if (arg == "--modules" && i + 1 < argc) modules_dir = argv[++i];
         else if (arg == "--overlays" && i + 1 < argc) overlays_dir = argv[++i];
         else return usage();
@@ -289,6 +290,8 @@ int main(int argc, char **argv) {
             options.output = out;
             if (!probes_path.empty())
                 for (std::uint32_t a : read_entries(probes_path).main) options.probes.insert(a);
+            if (!hooks_path.empty())
+                for (std::uint32_t a : read_entries(hooks_path).main) options.hooks.insert(a);
             generate(translations, options);
         }
     } catch (const std::exception &error) {

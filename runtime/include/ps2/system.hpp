@@ -54,6 +54,9 @@ struct Options {
     std::vector<AxisPress> axis_presses;
     std::vector<Patch> patches;
     std::function<void()> on_vblank;
+    // Runs before the instruction at a guest address the recompiler was told to
+    // hook (--hooks), with the CPU as the guest left it.
+    std::function<void(std::uint32_t, Cpu &)> on_hook;
     std::function<void(const std::string &name, const std::uint8_t *code, std::size_t size)> on_vu_program;
     std::string memcard_path;
     std::function<void()> on_memcard_saved;
@@ -140,6 +143,11 @@ void set_pad_axis(int axis, std::uint8_t value, int pad = 0);
 void set_pad_pressure(int button, std::uint8_t value, int pad = 0);
 void set_pad_connected(int pad, bool connected);
 std::uint16_t pad_rumble(int pad = 0);
+void request_online_adventure();
+void activate_online_adventure();
+void deactivate_online_adventure();
+bool take_online_adventure_request();
+bool online_adventure_active();
 void set_audio_sink(std::function<void(const std::int16_t *samples, std::size_t frames)> sink);
 
 }

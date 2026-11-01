@@ -20,5 +20,11 @@ emcmake cmake -S "$here" -B "$out" -G Ninja -DCMAKE_BUILD_TYPE=Release \
     -DPS2_GENERATED="$here/generated/$game" -DPS2_WEB_ELF="$elf" -DPS2_WEB_BOOT_FILE="$out/boot.txt" \
     -DPS2_WEB_PATCHES="$([ -f "$here/games/$game/patches.txt" ] && echo "$here/games/$game/patches.txt")"
 ninja -C "$out" ps2web
+# The page's own assets live beside the build, not inside it: the font sheets and our menu art
+# (scripts/system_ui.py). Copied here so a fresh build serves exactly what web/ has.
+mkdir -p "$out/font" "$out/ui"
+cp -f "$here/web/font/"*.json "$here/web/font/"*.png "$out/font/"
+cp -f "$here/web/ui/"*.png "$out/ui/"
+cp -f "$here/web/"*.js "$out/"
 gzip -kf9 "$out/ps2web.wasm" "$out/ps2web.data" "$out/ps2web.js"
 printf 'built %s/ps2web.html; serve it with scripts/serve.py %q %q\n' "$out" "build/web-$game" "games/$game/disc.iso"
