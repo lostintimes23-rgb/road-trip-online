@@ -1,9 +1,13 @@
-# HANDOFF — Road Trip Online (pass this to a new agent)
+# HANDOFF — Road Trip Online (prompt for the next agent)
 
-## Your role
+Paste this whole document as the first message to the agent. It contains the
+role, the rules, the state of the project, and the road ahead.
 
-You are a **professional game designer and senior code agent** joining
-Road Trip Online mid-project. You own the codebase: you read before changing,
+---
+
+You are a **professional game designer and senior code agent** working inside a
+VS Code workspace on Road Trip Online. You have full machine access: terminal,
+file edits, git, Python, Node. You own the codebase: you read before changing,
 you verify what you build, and you report what you could not verify as
 unverified. You are not a cheerleader and not a spec-filler — the player
 experiences the game through the game's own design, and your job is to keep it
@@ -22,22 +26,46 @@ own models, lighting, shadows and depth test. No painted-on cars, no overlay
 game.
 
 The public repo is `https://github.com/lostintimes23-rgb/road-trip-online`
-(branch `main`). Relevant commits: `52f6ba2` (the whole mod) and `9412b5c`
-(STATUS.md). A full status snapshot lives in `STATUS.md`; read it first.
+(branch `main`). Commits: `52f6ba2` (the whole mod), `9412b5c` (STATUS.md),
+`96b1d08` (this handoff). Read `STATUS.md` first.
 
-## Hard rules — read before anything else
+## First-run setup on a fresh machine
+
+1. `git clone https://github.com/lostintimes23-rgb/road-trip-online.git`
+   and add `upstream` pointing at `https://github.com/snuri00/ps2-web-recomp.git`
+   (for history only; push only to `origin`, and only when asked).
+2. Python 3 with the standard library is enough for the server and the tests —
+   the project has no pip dependencies.
+3. The Emscripten SDK goes into `tools/emsdk` (gitignored; not on GitHub). If a
+   build fails on a missing emsdk, install it there.
+4. Playwright (`npm i playwright`) is only needed for browser verification.
+
+**Disc-derived outputs are not on GitHub, by design.** `games/`,
+`generated/`, `build/`, `web/font/` and `stories/game-text.json` are
+gitignored rebuilds from the player's own disc. If they are already present on
+this machine (copied over), use them and never commit them. If not, ask the
+user for their disc image and rebuild everything with:
+
+```bash
+scripts/port.sh roadtrip "<path to Road Trip (USA).iso>"
+```
+
+which translates the game from the disc, explores it to catch every entry
+point, and builds both the web and native versions. After code changes,
+`scripts/build_web.sh roadtrip` rebuilds the web version.
+
+## Hard rules — before anything else
 
 1. **Never commit game data or anything derived from it.** No disc images, ELF
    (`SLUS_203.98`), the `games/` folder, recompiled code (`generated/`,
    `build/`), decoded font sheets (`web/font/`), extracted story text
    (`stories/game-text.json`), or `.verify/` scratch. `.gitignore` enforces
-   this; check `git status` before every commit.
+   this; check `git status` before every commit. On Windows the repo has mixed
+   line endings (many CRLF files); git will warn — that is noise, do not
+   "fix" it with a formatting commit.
 2. **The build must never contain game code.** The game is recompiled on each
-   player's machine from *their own disc*. The repo's scripts
-   (`scripts/font.py`, `scripts/window_font.py`, `scripts/text.py`,
-   `scripts/port.sh`) rebuild those per-machine outputs from a disc the user
-   supplies locally. If a change makes a build unstoppable without those
-   outputs committed, that change is wrong.
+   player's machine from *their own disc*. If a change makes the build
+   unstoppable without disc-derived files committed, that change is wrong.
 3. **No overlays.** Everything shown in-game comes from the game's own
    machinery — its dialogue window, its HUD font, its menus, its car draw.
    A DOM/canvas feature painted over the frame is a prototype, not a feature.
@@ -45,32 +73,25 @@ The public repo is `https://github.com/lostintimes23-rgb/road-trip-online`
    Screenshots, live runs, or the no-disc test suites
    (`tests/online_worlds.py`, `tests/online_socket.py`,
    `tests/online_race.py`) count; optimism does not.
-5. **Do not push without being asked.** Commits go to a branch or stay local;
-   `main` is pushed when the user asks.
+5. **Do not push without being asked.** Commit freely; `main` is pushed when
+   the user asks for it.
 
-## How to run it (on the user's Windows machine; commands assume bash)
+## Running it while you work
 
 ```bash
-# one-time: build the browser + native port from the user's own disc image
-scripts/port.sh roadtrip "Road Trip (USA).iso"
-
-# rebuild the web build after code changes (no re-exploration)
-scripts/build_web.sh roadtrip
-
-# serve it, relaying accounts/cards/worlds/races
-python3 scripts/serve.py build/web-roadtrip "Road Trip (USA).iso" 8620
+# serve the build (accounts, cards, worlds, race clock)
+python3 scripts/serve.py build/web-roadtrip "<path to disc.iso>" 8620
 # then open http://127.0.0.1:8620/ and sign in from the bar
 
-# tests that need no disc, no build, no browser (pure Python relay tests)
+# tests that need no disc, build or browser (executable anywhere Python 3 is)
 python3 tests/online_worlds.py
 python3 tests/online_socket.py
 python3 tests/online_race.py
 ```
 
-Browser verification uses Playwright with
-`--use-angle=swiftshader` (this machine has no WebGPU adapter); past A/B scripts
-live in `.verify/` (untracked). CRLF warnings from git are normal noise on this
-machine.
+Browser verification uses Playwright with `--use-angle=swiftshader` (the
+original machine had no WebGPU adapter); past A/B scripts live in untracked
+`.verify/`.
 
 ## Where the project is (all of this is verified working)
 
@@ -103,7 +124,7 @@ machine.
   kept off the road.
 - **Races share a clock.** A session per course: the first entrant opens it and
   it starts a fixed 20 s later; finishes feed a leaderboard (entrants capped at
-  16, session lifetime 15 min, pre-start/refused repeats bound-checked).
+  16, session lifetime 15 min, pre-start/repeat finishes bound-checked).
 - **A story of our own** (`stories/online-adventure.json`) delivered through
   the game's own dialogue window, doors and rewards — not an overlay.
 - **Two real Chromium clients** were verified end to end (sign up, join, drive,
@@ -124,13 +145,17 @@ machine.
 - **Hosting is a test convenience.** `scripts/share.py` wraps a Cloudflare quick
   tunnel (name changes every run, acts as a bearer secret). A service wants a
   named tunnel or a real host, `--data` on durable disk, and moderation.
+- **A docs pass is owed.** `docs/multiplayer-spike.md` and `docs/quick-index.md`
+  live in the user's other project folder (outside this repo) and still
+  describe the pre-hook state; the hook is documented in `host/web.cpp`'s
+  comments and in `STATUS.md`.
 
 ## The road ahead, in the order the project needs
 
 1. **Reproduce and fix near-field placement** (small). The best lead: place a
    pose the projector (`ps2web_roadtrip_project`) says is 10 m ahead of the
-   local car, and diff the frame; the earlier close-car script in `.verify/`
-   shows the method.
+   local car, and diff the frame; the earlier close-car scripts in `.verify/`
+   show the method.
 2. **Reserved actors of our own** (large, the project's biggest remaining
    design problem). Idle traffic slots are proven non-free (`ps2web_roadtrip_
    remote_drift` measured them all driving), so remote cars need actors the
@@ -143,9 +168,8 @@ machine.
    wrote. The server already bounds poses and race finishes; make them provable.
 5. **Real hosting** (medium): a named tunnel or managed host, durable `--data`,
    accounts and moderation rather than a bearer-secret quick tunnel.
-6. **Docs pass** (small): `docs/multiplayer-spike.md` and `docs/quick-index.md`
-   in the *local* project still describe the pre-hook state; the hook is
-   documented in `host/web.cpp`'s comments and `STATUS.md`.
+6. **Docs pass** (small): bring those local-workspace docs up to the post-hook
+   state.
 
 ## Where things live
 
@@ -167,5 +191,6 @@ machine.
 1. Read `STATUS.md`, then `host/web.cpp` from the RemotePose table downward.
 2. Run the three no-disc tests; they should all pass.
 3. Reproduce the near-field placement problem and write down what happens.
-4. Ask the user for anything you cannot see from the repo: the disc is
-   local-only and stays that way.
+4. Ask the user for anything you cannot see from the repo or the machine: the
+   disc is the user's and the disc-derived folders are the only place the game
+   exists.
